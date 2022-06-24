@@ -35,6 +35,20 @@ Fig. 8 The two fully automated GIS tools for palaeoglacier reconstruction. (a) T
 
 The ‘Whole PalaeoIce Model Without PalaeoIce Boundary’ tool (Fig. 8b) includes a set of input parameters of a DEM, moraines or cross sections to define the low limits of palaeoglaciers, target features (optional), extant glacier outlines (optional), the minimum source area to start a stream, the minimum total contributing area of a stream before joining another stream, the minimum tributary to main valley ratio, interval distance, the parameters to delineate extant glacier centerlines and estimate ice thickness, default shear stress, and the method to derive f factors. The output parameters include ice thickness points along the flowlines, the reconstructed palaeoglacier outlines, and the reconstructed palaeo ice thickness and surface elevation rasters. 
 
+# How to download and use this toolbox in ArcGIS or ArcGIS Pro
+The github site includes two ArcGIS toolbox (tbx) file and a python folder, including all python source codes associated with these tools. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
+
+![image](https://user-images.githubusercontent.com/24683137/140193749-35671a0e-2664-4bca-b487-a1e2f071fc36.png)
+
+A zip file of the while github folder will be downloaded to the local computer. Unzip this file will create a PalaeoIce-main folder with both the tbx file and the python folder and three code files. The user can use this toolbox, check the codes, and comtinue imporving this toolbox.
+
+The toolboxes and tools have been tested in ArcGIS 10.8, 10.9 and ArcGIS Pro 2.8 and 2.9. Errors may occur if using other versions of ArcGIS or ArcGIS Pro. 
+
+Please report any errors or questions to Yingkui Li (yli32@utk.edu).
+
+# Cite this work
+Li Y., in review. PalaeoIce: an automated method to reconstruct palaeoglacier using geomorphic evidence and digital elevation models.
+
 # Contact info
 Yingkui Li
 
