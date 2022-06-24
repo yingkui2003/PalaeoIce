@@ -3,6 +3,7 @@ PalaeoIce is an automated method to reconstruct palaeoglaciers based on digitial
 
 The PalaeoIce toolbox includes nine GIS tools: Seven tools are organized in three toolsets: 1) ‘Flowline Creation’; 2) ‘DEM Adjustment’; and 3) ‘PalaeoIce Reconstruction’. These tools provide the individual steps, allowing for the users to check and adjust the output(s) of each step for palaeoglacier reconstruction. The PalaeoIce toolbox also provides two fully automated palaeoglacier reconstruction tools with and without the constraints of palaeoglacier boundaries to automatically process individual steps without user’s interventions. 
 
+
 The ‘Flowline Creation’ toolset includes three GIS tools. ‘Glacier Centerlines (Revised from VOLTA)’ is developed to delineate glacier centerline(s) based on glacier outline(s) and a DEM (Fig. 5b). This tool is modified from the VOLTA centerline delineation tool (James and Carrivick, 2016, Please check 3.1.1 for detailed modifications). The input parameters include glacier outline(s), a DEM, the minimum tributary to main valley ratio and the minimum area ratio of a tributary to the whole glacier. The latter two parameters define the two thresholds used for delineating the centerlines from tributaries (check 3.1.1). The output is the generated glacier centerline(s).
  
 Fig. 5 The PalaeoIce toolbox and three GIS tools in the ‘Flowline Creation’ toolset. (A) The PalaeoIce toolbox in ArcGIS. (B) The interface for the ‘Glacier Centerlines (Revised from VOLTA)’ tool. (C) The interface for the ‘Flowlines from Stream Network’ tool. (D) The interface for the ‘Combine Flowlines With Centerlines’ tool.
@@ -33,3 +34,18 @@ The ‘Whole PalaeoIce Model With PalaeoIce Boundary’ tool (Fig. 8a) includes 
 Fig. 8 The two fully automated GIS tools for palaeoglacier reconstruction. (a) The interface for the ‘Whole PalaeoIce Model With PalaeoIce Boundary’ tool. (b) The interface for the ‘Whole PalaeoIce Model Without PalaeoIce Boundary’ tool.
 
 The ‘Whole PalaeoIce Model Without PalaeoIce Boundary’ tool (Fig. 8b) includes a set of input parameters of a DEM, moraines or cross sections to define the low limits of palaeoglaciers, target features (optional), extant glacier outlines (optional), the minimum source area to start a stream, the minimum total contributing area of a stream before joining another stream, the minimum tributary to main valley ratio, interval distance, the parameters to delineate extant glacier centerlines and estimate ice thickness, default shear stress, and the method to derive f factors. The output parameters include ice thickness points along the flowlines, the reconstructed palaeoglacier outlines, and the reconstructed palaeo ice thickness and surface elevation rasters. 
+
+# Contact info
+Yingkui Li
+
+Department of Geography
+
+University of Tennessee
+
+Knoxville, TN 37996
+
+Email: yli32@utk.edu
+
+Website: https://geography.utk.edu/about-us/faculty/dr-yingkui-li/
+
+Google Scholar: https://scholar.google.com/citations?user=JoNuyCMAAAAJ&hl=en&oi=ao
