@@ -52,7 +52,7 @@ The github site includes two ArcGIS toolbox (tbx) file and a python folder, incl
 
 A zip file of the while github folder will be downloaded to the local computer. Unzip this file will create a PalaeoIce-main folder with both the tbx file and the python folder and three code files. The user can use this toolbox, check the codes, and continue improving this toolbox. Note that the codes for each tool are not imported, so that the toolbox cannot be run just with the tbx file.
 
-The toolboxes and tools have been tested in ArcGIS 10.7, 10.8 and ArcGIS Pro 2.8 and 2.9. Errors may occur if using old versions of ArcGIS or ArcGIS Pro. 
+The toolboxes and tools have been tested in ArcGIS 10.7, 10.8 and ArcGIS Pro 2.8, 2.9 and 3.0. Errors may occur if using old versions of ArcGIS or ArcGIS Pro. 
 
 Please report any errors or questions to Yingkui Li (yli32@utk.edu).
 
