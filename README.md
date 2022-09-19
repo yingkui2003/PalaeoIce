@@ -3,7 +3,7 @@ PalaeoIce is an automated method to reconstruct palaeoglaciers based on a digiti
 
 The PalaeoIce toolbox includes nine GIS tools: Seven tools are organized in three toolsets: 1) ‘Flowline Creation’; 2) ‘Extant Glacier Topography Removal’; and 3) ‘PalaeoIce Reconstruction’. These tools provide the individual steps, allowing for the users to check and adjust the output(s) of each step for palaeoglacier reconstruction. The PalaeoIce toolbox also provides two fully automated palaeoglacier reconstruction tools with and without the constraints of palaeoglacier boundaries to automatically process individual steps without user’s interventions. 
 
-![image](https://user-images.githubusercontent.com/24683137/175660173-3a09a7a6-6e08-4a24-986b-0632af2ce230.png)
+![image](https://user-images.githubusercontent.com/24683137/191107923-6cf0cfe1-fed2-4021-87d4-72bca1d9b511.png)
 
 The ‘Flowline Creation’ toolset includes three GIS tools. ‘Extant Glacier Centerlines (Revised from VOLTA)’ is developed to delineate glacier centerline(s) based on glacier outline(s) and a DEM. This tool is modified from the VOLTA centerline delineation tool (James and Carrivick, 2016). The inputs include glacier outline(s), a DEM, the minimum tributary to main valley ratio and the minimum area ratio of a tributary to the whole glacier. The latter two parameters define the two thresholds used for delineating the centerlines from tributaries. The output is the generated glacier centerline(s).
 
