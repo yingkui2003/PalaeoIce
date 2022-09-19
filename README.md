@@ -56,7 +56,11 @@ The toolboxes and tools have been tested successfully in ArcGIS 10.7, 10.8 and A
 
 # How to avoid some potential errors
 (1) The code file has not been imported to each tool (for continuous development purpose), so that the toolbox cannot be run only with the tbx file. The code file can be imported to each tool when no further improvement is needed in the future.  
+
+
 (2) Make sure that the default setting for the scratch workspace in ArcGIS does not include space in the path or folder names. The space in the path or folder names may cause unexpected errors in some raster functions. 
+
+
 (3) If using this toolbox or other ArcGIS functions (especially raster functions) many times in ArcGIS, ArcGIS may have memory issues, causing unexpected errors. These errors can be solved by restarting the ArcGIS program or the computer. It seems that ArcGIS Pro has a better memory management with few memory-related issues.    
 
 Please report any errors or questions to Yingkui Li (yli32@utk.edu).
