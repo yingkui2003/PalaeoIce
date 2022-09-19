@@ -7,43 +7,43 @@ The PalaeoIce toolbox includes nine GIS tools: Seven tools are organized in thre
 
 The ‘Flowline Creation’ toolset includes three GIS tools. ‘Extant Glacier Centerlines (Revised from VOLTA)’ is developed to delineate glacier centerline(s) based on glacier outline(s) and a DEM. This tool is modified from the VOLTA centerline delineation tool (James and Carrivick, 2016). The inputs include glacier outline(s), a DEM, the minimum tributary to main valley ratio and the minimum area ratio of a tributary to the whole glacier. The latter two parameters define the two thresholds used for delineating the centerlines from tributaries. The output is the generated glacier centerline(s).
 
-![image](https://user-images.githubusercontent.com/24683137/175660330-ed16dd6b-da48-47c9-b681-6fe0274add8c.png)
+![image](https://user-images.githubusercontent.com/24683137/191108164-882a7e80-afe1-4b54-9bdb-01c88a37098f.png)
 
 ‘Flowlines from Stream Network’ is to delineate palaeoglacier flowlines based on the GIS stream network analysis. This tool includes four inputs: a DEM, moraines or cross sections (linear features), the minimum source area to start a stream, the minimum total contributing area of a stream before joining another stream, and the minimum tributary to main valley ratio. The outputs include the generated flowlines and an optional upstream watershed boundary for the moraines or cross sections.
 
-![image](https://user-images.githubusercontent.com/24683137/175660463-a99c883b-fec7-40b8-b1e4-745bc141a5f0.png)
+![image](https://user-images.githubusercontent.com/24683137/191108235-c26d88da-e3cb-4c5b-9657-6c514b9c4739.png)
 
 ‘Combine Flowlines With Centerlines’ is to combine the flowlines derived using the stream network analysis with glacier centerlines derived from extant glacier outlines. This tool requires the inputs of the flowlines, centerlines, extant glacier outlines, the watershed boundary, a DEM, and a search distance that is used to determine the linkage between the centerlines and flowlines. The output is the combined flowlines.
 
-![image](https://user-images.githubusercontent.com/24683137/175660590-5934ee1f-69ba-484c-81a6-c336ae1dc45f.png)
+![image](https://user-images.githubusercontent.com/24683137/191108310-faf9aa5f-8af6-407e-81d7-efbf2a1e3f0a.png)
 
 Two GIS tools are included in the ‘Extant Glacier Topography Removal’ toolset to determine the bed topography. ‘Extant Glacier Thickness (Revised from VOLTA)’ is a revised tool from VOLTA (James and Carrivick, 2016) to estimate ice thickness based on glacier centerlines, ice surface topography and glacier outlines. This tool incudes a set of inputs: glacier centerlines, a DEM, glacier outlines, ice density, effective slope limit, minimum slope limit, user-specified or default point resolution (cell size of DEM), user-specified or automatically derived shear stress. The outputs include the derived ice thickness points along the centerlines and the ice thickness raster for extant glaciers. Detailed description of this tool can be found in James and Carrivick (2016).
 
-![image](https://user-images.githubusercontent.com/24683137/175660729-02d2a0de-0abc-46c4-8e81-cfb6dfda1059.png)
+![image](https://user-images.githubusercontent.com/24683137/191108427-522d507b-d41d-4293-b41d-846b6da1be1d.png)
 
 ‘Subtract Ice Thickness From DEM’ is to derive bed ground topography by subtracting ice thickness from the DEM. This tool includes two inputs of the original DEM and the derived ice thickness raster. The output is the adjusted DEM representing the bare ground topography.
 
-![image](https://user-images.githubusercontent.com/24683137/175660815-70aeec3f-7c28-4236-8dc6-4bb3ae4665a7.png)
- 
+![image](https://user-images.githubusercontent.com/24683137/191108571-873a587a-9511-44d2-ad46-33e92312aa0b.png)
+
 Two GIS tools are developed in the ‘PalaeoIce Reconstruction’ toolset for palaeoglacier reconstruction of two scenarios. If the whole palaeoglacier outline(s) can be defined with confidence, only the distributions of palaeo ice thickness and surface elevation are needed to be reconstructed. However, for most cases, the whole outlines of palaeoglaciers are unavailable. In these cases, the outlines, ice thickness, and ice surface of palaeoglaciers can be reconstructed based on terminal moraines or cross sections to define the low limits of the glaciers and optional target geomorphic features (i.e., trimlines) from some sections. 
 
 The ‘Palaeo Ice Reconstruction With PalaeoIce Outline(s)’ includes a set of inputs: a DEM, flowlines, palaeoice boundaries, interval distance, default shear stress, the minimum and maximum range for the shear stress, the method to derive f factors. The outputs include ice thickness points along the flowlines and the reconstructed palaeo ice thickness and surface elevation rasters.
 
-![image](https://user-images.githubusercontent.com/24683137/175660988-db73a388-b03f-481c-8052-7bca27dd9881.png)
+![image](https://user-images.githubusercontent.com/24683137/191108709-e31de288-fffb-4c66-b3f8-0c14ba14e646.png)
 
 The ‘Palaeo Ice Reconstruction Without Palaeoice Outline(s)’ tool includes a set of inputs: a DEM, flowlines, interval distance, watershed boundaries (optional), target features constraining ice outlines (optional), default shear stress, the minimum and maximum range for the shear stress, the method to derive f factors. The outputs include ice thickness points along the flowlines, the reconstructed palaeoglacier outlines, and the reconstructed palaeo ice thickness and surface elevation rasters. 
 
-![image](https://user-images.githubusercontent.com/24683137/175661073-e69fc83a-6475-48d3-a0f9-804194bffbfc.png)
+![image](https://user-images.githubusercontent.com/24683137/191108796-718fd3b8-966e-49ef-8608-7db665c092b1.png)
 
 In addition to the above tools developed for each major steps of the reconstruction, two GIS tools are also developed to automatically facilitate the whole processes for the two scenarios: with and without palaeoice outline(s). Note that although these two fully automated tools are capable to reconstruct palaeoglaciers without user’s interventions for individual steps, it is strongly recommended that the users run the induvial steps first to obtain the suitable parameters for the reconstruction in a specific region before using the fully automated tools.
 
 The ‘Whole PalaeoIce Model With PalaeoIce Outline(s)’ tool includes a set of inputs: a DEM, moraines or cross sections to define the low limits of palaeoglaciers, palaeoglacier boundaries, extant glacier outlines (optional), the minimum source area to start a stream, the minimum total contributing area of a stream before joining another stream, the minimum tributary to main valley ratio, interval distance, the inputs to delineate extant glacier centerlines and estimate ice thickness, default shear stress, and the method to derive f factors. The outputs include ice thickness points along the flowlines and the reconstructed palaeo ice thickness and surface elevation rasters.
 
-![image](https://user-images.githubusercontent.com/24683137/175661206-7168114c-4e00-49aa-a8e1-6c7666e213ad.png)
- 
+![image](https://user-images.githubusercontent.com/24683137/191108964-596a92cc-888a-4450-8a67-c1d1956dd88a.png)
+
 The ‘Whole PalaeoIce Model Without PalaeoIce Outline(s)’ tool includes a set of inputs of a DEM, moraines or cross sections to define the low limits of palaeoglaciers, target features (optional), extant glacier outlines (optional), the minimum source area to start a stream, the minimum total contributing area of a stream before joining another stream, the minimum tributary to main valley ratio, interval distance, the inputs to delineate extant glacier centerlines and estimate ice thickness, default shear stress, and the method to derive f factors. The outputs include ice thickness points along the flowlines, the reconstructed palaeoglacier outlines, and the reconstructed palaeo ice thickness and surface elevation rasters. 
 
-![image](https://user-images.githubusercontent.com/24683137/175661270-9b1f1c6b-67a0-4236-9a4c-395a620fe86b.png)
+![image](https://user-images.githubusercontent.com/24683137/191109055-3ff98418-1c79-4c42-8a43-0595e5cea96f.png)
 
 # How to download and use this toolbox in ArcGIS or ArcGIS Pro
 The github site includes two ArcGIS toolbox (tbx) files, a python folder, including all python source codes associated with these tools, and a testdata folder, including the test datasets for this toolbox in the Daxi Valley, eastern Tian Shan, China. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
