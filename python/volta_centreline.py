@@ -42,7 +42,7 @@ def Centerline_Volta (glacier_outlines, dem, TributaryRatio, tributary_threshold
         for row in cursor:
             area = float(row[0])
             if area < minarea: ##This step reomve the small spurious ploygons as well
-                arcpy.AddMessage("delete spurious polygons..." )
+                #arcpy.AddMessage("delete spurious polygons..." )
                 cursor.deleteRow()
     del cursor, row
 
@@ -96,7 +96,7 @@ def Centerline_Volta (glacier_outlines, dem, TributaryRatio, tributary_threshold
         if new_branch_count == 0:
             arcpy.Append_management(initial_flowline, flow_line_cp, "NO_TEST")
         while new_branch_count > 0:
-            arcpy.AddMessage("Multiple Branches Detected")
+            arcpy.AddMessage("Multiple Branches Detected...")
             secondary_axis, axispoint = create_axis(new_branch_poly, clipped_dem)
             secondary_axis_count = arcpy.GetCount_management(secondary_axis)          #check outline is a single feature - count"
             secondary_axis_result = int(secondary_axis_count.getOutput(0))      #check outline is a single feature - get result"            

@@ -148,7 +148,7 @@ def Check_If_Flip_Line_Direction(line, dem):
     if nFlip > 0:
         arcpy.MakeFeatureLayer_management(line, "lyrLines")
         arcpy.SelectLayerByAttribute_management("lyrLines", "NEW_SELECTION", '"Flip" > 0')
-        arcpy.AddMessage("Count of selected features is " + str(nFlip))
+        #arcpy.AddMessage("Count of selected features is " + str(nFlip))
         arcpy.FlipLine_edit("lyrLines")  ##Need to change to lyrLines
         arcpy.SelectLayerByAttribute_management("lyrLines", "CLEAR_SELECTION")
 
@@ -165,12 +165,12 @@ def Check_If_Flip_Line_Direction(line, dem):
 # This function is revised from the codes by Pellitero et al.(2016) in GlaRe.
 #------------------------------------------------------------------------------------------------------------
 def Check_Flowline_Connectivity(flowline, Distance):
-    arcpy.AddMessage ("Checking connectivity and order between flowlines first points")
+    arcpy.AddMessage ("Checking connectivity and order between flowlines...")
     points=[]
     lines=[]
     distances=[]
     bad=False
-    with arcpy.da.SearchCursor(flowline, ["SHAPE@","OID@"]) as flows:
+    with arcpy.da.SearchCursor(flowline, ["SHAPE@","OID@"]) as flows: ##This function needs to revise further to only check the flowline with the same GlacierID
         for flow in flows:
             points.append(((flow[0].firstPoint).X, (flow[0].firstPoint).Y))
             lines.append(flow[0])
@@ -187,7 +187,7 @@ def Check_Flowline_Connectivity(flowline, Distance):
                     #if a < i:
                     if a != i:
                         distances.append(math.sqrt(math.pow((array[i][0]-array[a][0]),2)+math.pow((array[i][1]-array[a][1]),2)))
-                        touches=punto.within(lines[a])
+                        touches = (punto.touches(lines[a]) or punto.within(lines[a]))
                         if touches==True:
                             warning=1
                             break
@@ -201,19 +201,19 @@ def Check_Flowline_Connectivity(flowline, Distance):
 
     del flow, flows
     
-    if bad==False:
-        arcpy.AddMessage("Flowline firstpoints are correctly numbered and snapped to their parental flowline")
-    else:
-        arcpy.AddWarning( "The flowline number %r is likely to provoke the \"Flowline Ice Thickness\" tool to crash, please check increasing numbering and snap connectivity with its parental flowline" %(i))
+    #if bad==False:
+    #    arcpy.AddMessage("The start points of flowlines are correctly numbered and snapped to their parental flowline")
+    #else:
+    #    arcpy.AddWarning( "The flowline number %r is likely to provoke the \"Flowline Ice Thickness\" tool to crash, please check increasing numbering and snap connectivity with its parental flowline" %(i))
         
 
-    arcpy.AddMessage ("Checking distance between flowlines first points")
+    #arcpy.AddMessage ("Checking distance between flowlines first points")
     if Distance >= min(distances):
         bad = False
-        arcpy.AddWarning("This flowlines file is only guaranteed to work in the \"Flowline Ice Thickness\" tool with an interval distance lower than %r (in your local units)" %int(min(distances)))
+        #arcpy.AddWarning("This flowlines file is only guaranteed to work in the \"Flowline Ice Thickness\" tool with an interval distance lower than %r (in your local units)" %int(min(distances)))
     else:
         bad = True
-        arcpy.AddMessage("Flowline firstpoints are correctly spaced")
+        #arcpy.AddMessage("Flowline firstpoints are correctly spaced")
 
     return bad
 
@@ -431,13 +431,14 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
         shear_stress = 27000* sum_a_cos**0.106  ### this equation was from Glacier volume estimation on Cascade volcanoes 1986 paper in Annual of Glaciology
         if shear_stress < min_ss:
             shear_stress = min_ss
-            arcpy.AddMessage("WARNING: error in auto-calculation of shear stress, using the default value instead")
+            #arcpy.AddMessage("WARNING: The calculated shear stress is smaller than the specified minimum value, using the specified minimum value instead")
         if shear_stress > max_ss: 
             shear_stress = max_ss
+            #arcpy.AddMessage("WARNING: The calculated shear stress is larger than the specified maximum value, using the specified maximum value instead")
             
 
     else:
-        arcpy.AddMessage("WARNING: glacier altitudinal extent < 300 m. using the default value instead")
+        #arcpy.AddMessage("WARNING: glacier altitudinal extent < 300 m. using the default value instead")
         shear_stress = min_ss
 
     return shear_stress
@@ -1976,7 +1977,8 @@ def flowline (central_points_with_alt, dem, flow_line_output, flowline_glacier_o
     end_co_ords = min_co_ords_list[0] ##use the first lowest points as the end coordinate
 
     if len(max_co_ords_list) > 1: #test if more than 1 high point
-        arcpy.AddMessage("WARNING multiple high points, using first point")
+        #arcpy.AddMessage("WARNING multiple high points, using first point")
+        pass
 
     start_ele = maximum_central_point_alt #set initial starting elevation to maximum 
     start_co_ords = max_co_ords_list[0] #set initial starting co-ords to that of maximum

@@ -71,29 +71,29 @@ Flowline_from_Stream_Network (Input_DEM, Input_moraines_or_cross_sections, Strea
 if Input_Glacier_Outlines != "":
     ##Step 2: generate centerlines from glacier outlines
     arcpy.Delete_management("in_memory") ### Empty the in_memory
-    arcpy.AddMessage("Generate centerlines from glacier outlines...")
+    arcpy.AddMessage("Generate centerlines from extant glacier outlines...")
     arcpy.Delete_management("in_memory") ### Empty the in_memory
     Centerline_Volta (Input_Glacier_Outlines, Input_DEM, CenterlineTributaryRatio, CenterlineTributaryAreaRatio, Centerlines)
     arcpy.Delete_management("in_memory") ### Empty the in_memory
-    arcpy.AddMessage("Interpret ice thickness...")
+    arcpy.AddMessage("Interpret ice thickness of extant glaciers...")
     arcpy.Delete_management("in_memory") ### Empty the in_memory
     Ice_Thickness_Volta (Centerlines, Input_DEM, Input_Glacier_Outlines, 900, slope_limit, min_slope, "false", Distance, "true", shearstress, volta_fl_points,
                      "true", "true", "", icethick)
     arcpy.Delete_management("in_memory") ### Empty the in_memory
-    arcpy.AddMessage("Adjust DEM based on ice thickness...")
+    arcpy.AddMessage("Remove the ice thickness of extant glacier(s) from topography...")
     Adjust_DEM_by_Subtracting_Ice_Thickness (Input_DEM, icethick, adjustDEM)
     arcpy.Delete_management("in_memory") ### Empty the in_memory
-    arcpy.AddMessage("combine flowlines with centerlines...")
+    arcpy.AddMessage("Combine flowlines with centerlines...")
     Combine_Flowlines_with_Centerlines (flowlines, Centerlines, Input_Glacier_Outlines, watersheds, Input_DEM, 700, Combined_Flowline)
     arcpy.Delete_management("in_memory") ### Empty the in_memory
-    arcpy.AddMessage("Paleoice reconstruction...")
+    arcpy.AddMessage("Palaeoglacier reconstruction...")
     ##let the program to recalculate the watershed based on the adjusted DEM
     PaleoIceReconstruction(adjustDEM, Combined_Flowline, Distance, watersheds, Input_Target_Features, shearstress, 50000, 200000, bFactorPolyfit, Output_Flowline_Points,
                            Output_Ice_Polygons, Output_Ice_Surfaces, Output_Ice_Thickness)
 
 else:
     arcpy.Delete_management("in_memory") ### Empty the in_memory
-    arcpy.AddMessage("Paleoice reconstruction...")
+    arcpy.AddMessage("Palaeoglacier reconstruction...")
     PaleoIceReconstruction(Input_DEM, flowlines, Distance, watersheds, Input_Target_Features, shearstress, 50000, 200000, bFactorPolyfit, Output_Flowline_Points,
                            Output_Ice_Polygons, Output_Ice_Surfaces, Output_Ice_Thickness)
 

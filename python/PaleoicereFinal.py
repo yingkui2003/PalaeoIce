@@ -39,13 +39,13 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
         arcpy.GetMessage(0)
         exit()
 
-    if TargetFeatures != "":
-        targetType = arcpy.Describe(inputflowline).shapeType
-        if not (targetType == "Polyline"): ##quit if not polyline features
-            arcpy.AddMessage("The target features are not polyline input! Assuming no target features")
-            TargetFeatures = ""
+    #if TargetFeatures != "":  ##The target features can be point, line and polygon type: Yingkui Li 09/12/2022
+    #    targetType = arcpy.Describe(inputflowline).shapeType
+    #    if not (targetType == "Polyline"): ##quit if not polyline features
+    #        arcpy.AddMessage("The target features are not polyline input! Assuming no target features")
+    #        TargetFeatures = ""
 
-    arcpy.AddMessage("Performing flowline quality check")
+    arcpy.AddMessage("Checking the quality of flowline(s)...")
     number=arcpy.GetCount_management(inputflowline)
     if int(number.getOutput(0))==1:
         arcpy.AddMessage("The flowline is good to be used in the toolbox")
@@ -56,7 +56,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
         Check_Flowline_Connectivity(inputflowline, Distance)
 
     #Check and flip lines if necessary    
-    arcpy.AddMessage("Checking flowline direction")
+    arcpy.AddMessage("Checking flowline direction...")
     Check_If_Flip_Line_Direction(inputflowline, BedDEM)
 
 
@@ -208,7 +208,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
 
     for gid in range(len(uniqueiceID)):
         query = GlacierID + " = " + str(uniqueiceID[gid])
-        arcpy.AddMessage("Processing #" + str(gid+1) +"/" + str(len(uniqueiceID)) + " of glaciers...")                                                                                       
+        arcpy.AddMessage("Processing #" + str(gid+1) +"/" + str(len(uniqueiceID)) + " of reconstructed glaciers...")                                                                                       
         arcpy.Select_analysis (flowlines, flowline, query)
 
         ###Select the flowline points corresponding to the flowlines
@@ -245,14 +245,14 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
                 arcpy.Clip_analysis (selflowline3dpoints, ws, "in_memory\\selectedflpoints")
                 inside_point_count = int(arcpy.GetCount_management("in_memory\\selectedflpoints").getOutput(0))
                 if inside_point_count < points_count:
-                    arcpy.AddMessage("ws does not include all flowline points!!")
+                    #arcpy.AddMessage("ws does not include all flowline points!!")
                     outSnapPour = SnapPourPoint(singepoint, facc, 100*i) ##each time increase 100 m downstream
                     outpntWs = Watershed(fdir, outSnapPour)
                     arcpy.RasterToPolygon_conversion(outpntWs, ws)
 
                 ##add the maximum loop controls
                 if i >= 10:
-                    arcpy.AddMessage("Cannot find the watershed that include all flowline points! use the 1 km buffer of the flowline instead")
+                    #arcpy.AddMessage("Cannot find the watershed that include all flowline points! use the 1 km buffer of the flowline instead")
                     arcpy.Buffer_analysis(flowline, "in_memory\\flowlinebuf", "1000 Meter", "#", "#", "ALL")
                     ##get the minmum elevation of the startperppolygon
                     extDEM = ExtractByMask(fillDEM, startperppolygon)
@@ -362,7 +362,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
                 if ss > max_ss:
                     ss = max_ss
                
-            arcpy.AddMessage("Calculated shear stress is:" + str(ss) + " and the difference with the previous value is " + str(abs(ss-ss0)/ss0))
+            arcpy.AddMessage("The calculated shear stress is:" + str(ss) + " and the difference with the previous value is " + str(abs(ss-ss0)/ss0))
             ss_ratio = abs(ss - ss0)/ss0
             if abs(ss_ratio - ss_ratio0)< 0.005 or (ss_ratio < 0.01):  ##assuming ss always increase, to stop if decreasing; ##use 1.0% change as the threshold to stop the loop
             #if (abs(ss - ss0)/ss0 < 0.01):  ##assuming ss always increase, to stop if decreasing; ##use 0.01% change as the threshold to stop the loop
@@ -372,10 +372,10 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
             arcpy.CalculateField_management(selflowline3dpoints,"SSTRESS",ss) ##update ss to the flowline points
 
             if bFactorPolyfit == True:
-                arcpy.AddMessage("Deriving F based on the Polyfit of the cross section...")
+                arcpy.AddMessage("Deriving F factor based on the Polyfit of the cross section...")
                 cross_section_width = AdjustFfactor_Ployfit_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepoly) 
             else:
-                arcpy.AddMessage("Deriving F from cross section...")
+                arcpy.AddMessage("Deriving F factor from cross section...")
                 #Try to use the curve fitting method to derive the F factor
                 cross_section_width = AdjustFfactor_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepoly) 
 

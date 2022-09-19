@@ -43,7 +43,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
     centerlinecount = int(centerlinecountResult.getOutput(0))
 
     if centerlinecount == 0:
-        arcpy.AddMessage ("no glacier centerline in the watershed of the flowlines")
+        arcpy.AddMessage ("No glacier centerline in the watershed of the flowlines")
         arcpy.Delete_management("in_memory") ### Empty the in_memory
         exit()
 
@@ -112,7 +112,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
     ###remove the flowline within the glacier outlines by select by erase
     feature_count_result = arcpy.GetCount_management(flowline_intersected)          
     feature_count = int(feature_count_result.getOutput(0))
-    arcpy.AddMessage("Intersected flowlines: " + str(feature_count))
+    #arcpy.AddMessage("Intersected flowlines: " + str(feature_count))
     if feature_count < 1: ##No feature selected, do nothing, simply return the flowline input                                       
         arcpy.CopyFeatures_management(flowlineinput, combineflowline)
         return
@@ -122,7 +122,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
     
     if bEmpty == True:
         ##copy the centerline as the combined flowline
-        arcpy.AddMessage("Copy the centerline as flowlines")
+        #arcpy.AddMessage("Copy the centerline as flowlines")
         arcpy.CopyFeatures_management(centerline, combineflowline)
         return
     
@@ -137,9 +137,9 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
 
     nodecountresult = arcpy.GetCount_management(centerlineToNodes)
     nodecount = int(nodecountresult.getOutput(0))
-    arcpy.AddMessage("The number of near IDs is: " + str(nodecount))
+    #arcpy.AddMessage("The number of near IDs is: " + str(nodecount))
     if nodecount == 0: ##If no nearID
-        arcpy.AddMessage("No nearID is selected, exit the program!!")
+        #arcpy.AddMessage("No nearID is selected, exit the program!!")
         exit()
     else:
         #if nodecount > 0:
@@ -160,13 +160,13 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
                     y2.append(row[3])
         del cursor, row
         ##Create the connectionline
-        arcpy.AddMessage("Near ID number is: " + str(len(NearID)))
+        #arcpy.AddMessage("Near ID number is: " + str(len(NearID)))
         if len(NearID) > 0:
-            arcpy.AddMessage("Create connection lines")
+            #arcpy.AddMessage("Create connection lines")
             connectionline = arcpy.CreateFeatureclass_management("in_memory", "connectionline","POLYLINE","","","",dem)
             new_line_cursor = arcpy.da.InsertCursor(connectionline, ('SHAPE@'))
             for i in range(len(NearID)):
-                arcpy.AddMessage("Create connection lines: " + str(i+1))
+                #arcpy.AddMessage("Create connection lines: " + str(i+1))
                 array = arcpy.Array([arcpy.Point(x2[i],y2[i]),arcpy.Point(x1[i], y1[i])])
                 polyline = arcpy.Polyline(array)
                 new_line_cursor.insertRow([polyline])

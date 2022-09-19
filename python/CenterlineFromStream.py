@@ -38,7 +38,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
     count = len(FIds)
 
     if count < 1:
-        arcpy.AddMessage("There is no features in moraines or cross sections")
+        arcpy.AddMessage("There is no features in moraines or cross sections! Quit the program!")
         sys.exit()
 
     moraineselected = "in_memory\\moraineselected"  ##Set a in_memory file for each moraine feature
@@ -54,7 +54,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
 
 
     for imoraine in range (count):
-        arcpy.AddMessage("Generating flowline(s) for glacial moraine "+str(imoraine + 1)+" of "+str(count))
+        arcpy.AddMessage("Generating flowline(s) for glacial moraine "+str(imoraine + 1)+" of "+str(count) + " moraine(s)")
 
         query = FcID +" = "+str(FIds[imoraine])
 
@@ -105,7 +105,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
             tonode = np.array([item[1] for item in lineArray])
             uniquenode = np.unique(tonode)
             lineid = [] ##Record the id for deletion
-            arcpy.AddMessage("checking tributary threshold...")
+            #arcpy.AddMessage("Checking tributary threshold...")
             for i in range(len(uniquenode)):
                 selArr = lineArray[tonode == uniquenode[i]]
                 fcclist = []
@@ -129,7 +129,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
                             break
 
             ##Remove features based on the tributary ratio
-            arcpy.AddMessage("checking tributary ratio...")
+            #arcpy.AddMessage("Checking tributary ratio...")
             for i in range(len(uniquenode)):
                 selArr = lineArray[tonode == uniquenode[i]]
                 fcclist = []
@@ -152,7 +152,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
             del cursor, row				
 
             ##Dissolve the line file
-            arcpy.AddMessage("dissolve and clean lines...")
+            #arcpy.AddMessage("dissolve and clean lines...")
 
             ##Clean extralines based on the end points intersection 09/24/2020
             cleanextralineswithtopology(TmpStream,tmpoutStream, 'MAX')  ## clean the extra lines before dissolving
@@ -170,13 +170,13 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
             else:
                 arcpy.Append_management(smoothline, "in_memory\\outflowline", "NO_TEST")
         else:
-            arcpy.AddMessage("No flowline is created for this feature. It seems that the threshold for a stream is too large for this feature.")
+            arcpy.AddMessage("No flowline is created for this feature. It seems that the threshold for a stream is too large!")
 
     ##make sure there are flowlines created
     countResult = arcpy.GetCount_management("in_memory\\outflowline")
     count = int(countResult.getOutput(0))
     if count < 1:
-        arcpy.AddMessage("No flowlines are created for this set of features!!")
+        arcpy.AddMessage("No flowlines are created for this set of moraine features!!")
         sys.exit()
     ##Merge flowline and add GlacierID
     Check_If_Flip_Line_Direction ("in_memory\\outflowline", fillDEM) ##use fillDEM because the orginal DEM may have problems

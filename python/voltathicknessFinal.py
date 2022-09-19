@@ -36,7 +36,7 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
     effective_slope_limit = slope_limit
 
     ##Check and Flip flowline direction
-    arcpy.AddMessage("Checking and flipping flowline direction....")
+    arcpy.AddMessage("Checking flowline direction....")
     Check_If_Flip_Line_Direction (flowline, dem)
 
     exist_fields_list_centrelines = [f.name for f in arcpy.ListFields(flowline)] #List of current field names in outline layer
@@ -91,9 +91,9 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
             max_length_dict[row[0]] = max_length_outline
             if shear_stress_test == "true":
                 shear_stress_value = shear_stress_calculation(subset_flowline, single_outline, dem, 50000, 200000) ##revised based onupdated function
-                arcpy.AddMessage("Shear stress auto calculated for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
+                arcpy.AddMessage("The shear stress derived for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
             else:
-                arcpy.AddMessage("User Defined Shear stress for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
+                arcpy.AddMessage("Use the user-specified shear stress for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
             row[1] = int(shear_stress_value)
             cursor.updateRow(row)
     del row, cursor
@@ -327,7 +327,7 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
                 merged_points = arcpy.Append_management(points_glac, initial_fl_points)
 
             counter = counter + 1
-    arcpy.AddMessage("Counter is: " + str(counter))
+    #arcpy.AddMessage("Counter is: " + str(counter))
     del row, cursor
     
     if (counter == 1): #Handle just have one glacier outline and center line issue; need to define merge_points
@@ -384,10 +384,10 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
     arcpy.DeleteField_management(merged_points, "seq")
     arcpy.CopyFeatures_management(merged_points, final_points)
 
-    arcpy.AddMessage("Centreline point thickness calculation complete")
+    #arcpy.AddMessage("Centreline point thickness calculation complete")
 
     if (interpolate_check == "true" and len(raster_out) > 0):  #make sure the output raster has been assigned
-        arcpy.AddMessage("Interpolating thickness raster")
+        arcpy.AddMessage("Interpolating ice thickness raster...")
         dissolve_outlines = arcpy.Dissolve_management(outline, "in_memory\\dissolve_outlines")
         singlepart_outlines = arcpy.MultipartToSinglepart_management(dissolve_outlines, "in_memory\\singlepart_outlines")
         outline_lines_in = arcpy.PolygonToLine_management(singlepart_outlines, "in_memory\\outlines_line_in")
@@ -428,10 +428,17 @@ if __name__ == '__main__':
     shear_stress_test = arcpy.GetParameterAsText(8)
     shear_stress_value = arcpy.GetParameterAsText(9)
     final_points = arcpy.GetParameterAsText(10)
-    interpolate_check = arcpy.GetParameterAsText(11)
-    cellsize_interpolate_check = arcpy.GetParameterAsText(12)
-    cellsize_interpolate_user_spec = arcpy.GetParameterAsText(13)
-    raster_out = arcpy.GetParameterAsText(14)
+    #interpolate_check = arcpy.GetParameterAsText(11)
+    #cellsize_interpolate_check = arcpy.GetParameterAsText(12)
+    #cellsize_interpolate_user_spec = arcpy.GetParameterAsText(13)
+
+    raster_out = arcpy.GetParameterAsText(11)
+
+    ##Setup the default values for other parameters of the ice thickness function
+    interpolate_check = "true"
+    cellsize_interpolate_check = "true"
+    cellsize_interpolate_user_spec = ""
+
 
     arcpy.Delete_management("in_memory")
 
