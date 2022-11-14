@@ -61,8 +61,8 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
         for row in cursor:
             flow_id_list.append(row[0])
     del row, cursor
-    
-    with arcpy.da.UpdateCursor(outline, ["Shape_Area","va_thick"]) as cursor:
+
+    with arcpy.da.UpdateCursor(outline, ["Shape@Area","va_thick"]) as cursor:
         for row in cursor:
             area_km2 = row[0]/1000.0/1000.0
             ####To calculate the average thickness based on the glacier area; Should be able to find the original equation
