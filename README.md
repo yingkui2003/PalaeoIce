@@ -66,7 +66,7 @@ The toolboxes and tools have been tested successfully in ArcGIS 10.7, 10.8 and A
 Please report any errors or questions to Yingkui Li (yli32@utk.edu).
 
 # Cite this work
-Li Y., in review. PalaeoIce: an automated method to reconstruct palaeoglacier using geomorphic evidence and digital elevation models.
+Li Y., 2023. PalaeoIce: an automated method to reconstruct palaeoglacier using geomorphic evidence and digital elevation models. Geomorphology 421, 108523. https://doi.org/10.1016/j.geomorph.2022.108523.
 
 # Contact info
 Yingkui Li
