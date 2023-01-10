@@ -63,6 +63,8 @@ The toolboxes and tools have been tested successfully in ArcGIS 10.7, 10.8 and A
 
 (3) If using this toolbox or other ArcGIS functions (especially raster functions) many times in ArcGIS, ArcGIS may have memory issues, causing unexpected errors. These errors can be solved by restarting the ArcGIS program or the computer. It seems that ArcGIS Pro has a better memory management with few memory-related issues.    
 
+(4) It is recommended to divide a large DEM to small DEMs (less than 1500 X 1500 cells) to avoid the memory issues in the palaeoglacier reconstruction. 
+
 Please report any errors or questions to Yingkui Li (yli32@utk.edu).
 
 # Cite this work
