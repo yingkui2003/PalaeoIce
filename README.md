@@ -68,6 +68,9 @@ Please report any errors or questions to Yingkui Li (yli32@utk.edu).
 # Cite this work
 Li Y., 2023. PalaeoIce: an automated method to reconstruct palaeoglacier using geomorphic evidence and digital elevation models. Geomorphology 421, 108523. https://doi.org/10.1016/j.geomorph.2022.108523.
 
+# Most recent updates
+01/10/2023: Fixed some bugs in the program.
+
 # Contact info
 Yingkui Li
 
