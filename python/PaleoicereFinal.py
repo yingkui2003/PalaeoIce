@@ -29,7 +29,10 @@ from SharedFunctions import *  ##
 # This fuction is the whole process to reconstruct paleoice based on DEM, input flowlines, target features, and default shear stress
 #------------------------------------------------------------------------------------------------------------
 def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetFeatures, shearstress, min_ss, max_ss, bFactorPolyfit, outpoints, outIcePolys, outIceSurfaces, outIceThickness):
-
+    arcpy.env.extent = BedDEM
+    arcpy.env.cellSize = BedDEM
+    arcpy.env.snapRaster = BedDEM ##setup snap raster
+    
     GlacierID = "GlacierID" ##This is an ID field in inputflowline to identify the flowline(s) for each glacier (maybe connected with multiple flowlines)
 
 
@@ -64,8 +67,9 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
     cellsize = arcpy.GetRasterProperties_management(BedDEM,"CELLSIZEX")
     cellsize_float = float(cellsize.getOutput(0)) # use float cell size
 
-    arcpy.env.extent = BedDEM
-    arcpy.env.cellSize = BedDEM
+    #arcpy.env.extent = BedDEM
+    #arcpy.env.cellSize = BedDEM
+
     burninDEM = BedDEM - Power (cellsize_float / (cellsize_float + EucDistance(inputflowline) ), 2 ) * 10 ##Burn in the DEM to make sure the flow pass through the flowline start points
     ##Start to delineate the watershed
     #Hydro analysis
@@ -424,11 +428,22 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
     arcpy.AddField_management(outline_lines_in, "contour", "SHORT")
     arcpy.CalculateField_management(outline_lines_in,"contour",0)
     cellsize_interp = cellsize_float
-    interpolated_ice_depth = TopoToRaster([TopoPointElevation([[outpoints, 'thick']]), TopoContour([[outline_lines_in, 'contour']]), TopoBoundary ([singlepart_outlines])], cellsize_interp, "", '20', '0', '#', 'NO_ENFORCE', "SPOT", '1', '#', '1', '0', '0', '200') ##,"","","","",0.1)
-    arcpy.CopyRaster_management (interpolated_ice_depth, outIceThickness)
+
+    ##Select only the ice thick > 0 for the thickness interpretation to prevent the negative ice thickness interpretation
+    outpoints_not_zero = "in_memory\\outpoints_not_zero"
+    arcpy.Select_analysis (outpoints, outpoints_not_zero, "thick > 0")
+    
+    interpolated_ice_depth = TopoToRaster([TopoPointElevation([[outpoints_not_zero, 'thick']]), TopoContour([[outline_lines_in, 'contour']]), TopoBoundary ([singlepart_outlines])], cellsize_interp, "", '20', '0', '#', 'NO_ENFORCE', "SPOT", '1', '#', '1', '0', '0', '200') ##,"","","","",0.1)
+
+    outThickness = Con(interpolated_ice_depth > 0, interpolated_ice_depth, 0)
+    arcpy.CopyRaster_management (outThickness, outIceThickness)
+    ##Get ice surface based on ice thickness
+    icesurface_final = outThickness + BedDEM
+
+    #arcpy.CopyRaster_management (interpolated_ice_depth, outIceThickness)
 
     ##Get ice surface based on ice thickness
-    icesurface_final = interpolated_ice_depth + BedDEM
+    #icesurface_final = interpolated_ice_depth + BedDEM
     #icesurface_final = interpolated_ice_depth + fillDEM
     ##Should make sure that no negtive value for the thickness, is negative, set as zero?? Need to explore where are these negative values
     arcpy.CopyRaster_management (icesurface_final, outIceSurfaces)

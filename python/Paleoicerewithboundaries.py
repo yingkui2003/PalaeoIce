@@ -33,9 +33,9 @@ from arcpy.sa import *
 # of the these points to the closest cross section points. Then, the ice surface elevations of the the cross section
 # points will be used to interpret the ice surface raster for the whole ice polygon boundary based on the Topo to Raster tool.
 #------------------------------------------------------------------------------------------------------------
-def IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (flowline_points, beddem, icebnd, field, outicesurface):
-    arcpy.env.extent = beddem
-    arcpy.env.cellSize = beddem
+def IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (flowline_points, beddem, cellsize, icebnd, field, outicesurface):
+    #arcpy.env.extent = beddem
+    #arcpy.env.cellSize = beddem
 
     ##Convert the ice bondary to contour lines of zero depth
     dispoly = "in_memory\\dispoly"
@@ -46,7 +46,13 @@ def IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (flowline_point
     arcpy.AddField_management(icebnd_lines, "contour", "SHORT")
     arcpy.CalculateField_management(icebnd_lines,"contour",0)
 
-    palaeoThickness = TopoToRaster([TopoPointElevation([[flowline_points, field]]), TopoContour([[icebnd_lines, 'contour']]), TopoBoundary ([singlepart_icebnd])])
+    #arcpy.CopyFeatures_management(flowline_points, "d:\\temp\\flowline_points.shp")
+    #arcpy.CopyFeatures_management(icebnd_lines, "d:\\temp\\icebnd_lines.shp")
+    #arcpy.CopyFeatures_management(singlepart_icebnd, "d:\\temp\\singlepart_icebnd.shp")
+    
+
+    palaeoThickness = TopoToRaster([TopoPointElevation([[flowline_points, field]]), TopoContour([[icebnd_lines, 'contour']]), TopoBoundary ([singlepart_icebnd])], cellsize, 
+                       singlepart_icebnd, "#", "#", "#", "ENFORCE")
 
     icesurface = palaeoThickness + beddem
 
@@ -58,9 +64,13 @@ def IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (flowline_point
 # This fuction is the whole process to reconstruct paleoice based on DEM, input flowlines, ice boundary, and default shear stress
 #------------------------------------------------------------------------------------------------------------
 def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, iceboundary, shearstress, min_ss, max_ss, bFactorPolyfit, outpoints, outIceSurfaces, outIceThickness):
-
+    arcpy.env.extent = BedDEM
+    arcpy.env.cellSize = BedDEM
+    arcpy.env.snapRaster = BedDEM ##setup snap raster
+    
     GlacierID = "GlacierID" ##This is an ID field in inputflowline to identify the flowline(s) for each glacier (maybe connected with multiple flowlines)
-
+    spatialref=arcpy.Describe(inputflowline).spatialReference 
+    arcpy.env.outputCoordinateSystem = spatialref
 
     flowlineType = arcpy.Describe(inputflowline).shapeType
     if not (flowlineType == "Polyline"): ##quit if not polyline features
@@ -90,14 +100,23 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
     cellsize = arcpy.GetRasterProperties_management(BedDEM,"CELLSIZEX")
     cellsize_float = float(cellsize.getOutput(0)) # use float cell size
 
+
     ##remove potential spurious polygons from the icebndpolys
+    count_result = arcpy.GetCount_management(icebndpolys)
+    #arcpy.AddMessage("Number of Outlines: " + str(int(count_result.getOutput(0))))
     minArea = cellsize_float * cellsize_float * 5 ##5 pixels 
     with arcpy.da.UpdateCursor(icebndpolys, "SHAPE@AREA") as cursor:        
         for row in cursor:
             if row[0] < minArea:
+                arcpy.AddMessage("Delete spurious polygon")
                 cursor.deleteRow()  ##Just remove the max elevation and keep the lowest elevation
     del cursor, row
-    
+
+    count_result = arcpy.GetCount_management(icebndpolys)
+    if int(count_result.getOutput(0))==0:
+        arcpy.AddWarning("There is no outline")
+        quit()
+         
 
     arcpy.AddMessage("Checking the quality of flowline(s)...")
     number=arcpy.GetCount_management(inputflowline)
@@ -131,10 +150,6 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
     icesurs = arcpy.env.scratchFolder + "\\r" + "icesurs" ##the inmemory does not work for raster
 
 
-    arcpy.env.extent = BedDEM
-    arcpy.env.cellSize = BedDEM
-    arcpy.env.snapRaster = BedDEM ##setup snap raster
-    
     ##watershed delineations
     burninDEM = BedDEM - Power (cellsize_float / (cellsize_float + EucDistance(inputflowline) ), 2 ) * 10 ##Burn in the DEM to make sure the flow pass through the flowline start points
     ##Start to delineate the watershed
@@ -144,13 +159,31 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
         
     facc = FlowAccumulation(fdir) ##Flow accmulation    
 
-    
-    exist_fields = [f.name for f in arcpy.ListFields(inputflowline)] #List of current field names in outline layer
-    if GlacierID not in exist_fields:
-        arcpy.AddMessage("Assigning Glacier ID...")
-        Add_GlacierID_by_Touches (inputflowline, GlacierID, flowlines)
-    else:
-        arcpy.CopyFeatures_management(inputflowline, flowlines)
+    ##For some times this the following does not work
+    arcpy.AddField_management(icebndpolys,GlacierID,"LONG", 10)
+    arcpy.CalculateField_management(icebndpolys,GlacierID,str("!"+str(arcpy.Describe(icebndpolys).OIDFieldName)+"!"),"PYTHON_9.3")
+    arcpy.SpatialJoin_analysis(inputflowline, icebndpolys, flowlines, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "1 Meters", "#")
+    count_result = arcpy.GetCount_management(flowlines)
+    #arcpy.AddMessage(int(count_result.getOutput(0)))
+
+    if int(count_result.getOutput(0)) == 0: ##test the selection of flowlines by select layer by location
+        outline_layer = arcpy.MakeFeatureLayer_management(icebndpolys, "in_memory\\outline_layer")
+        flowline_layer = arcpy.MakeFeatureLayer_management(inputflowline, "in_memory\\flowline_layer")
+        arcpy.SelectLayerByLocation_management(flowline_layer, "WITHIN", outline_layer)
+        arcpy.CopyFeatures_management(flowline_layer, flowlines)
+        count_result2 = arcpy.GetCount_management(flowlines)
+        #arcpy.AddMessage(int(count_result2.getOutput(0)))
+        if int(count_result2.getOutput(0)) == 0:
+            arcpy.AddWarning("No flowlines inside glacier outlines!")
+            quit()
+
+    #arcpy.CopyFeatures_management(flowlines, "d:\\temp\\flowlines.shp")
+    #exist_fields = [f.name for f in arcpy.ListFields(inputflowline)] #List of current field names in outline layer
+    #if GlacierID not in exist_fields:
+    #    arcpy.AddMessage("Assigning Glacier ID...")
+    #    Add_GlacierID_by_Touches (inputflowline, GlacierID, flowlines)
+    #else:
+    #    arcpy.CopyFeatures_management(inputflowline, flowlines)
 
     ###The process to ordering the flowlines
     #Obtain the height info for the start of each flowline
@@ -174,9 +207,11 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
 
     ##Order the line geometries in the list
     arcpy.AddMessage("Ordering flowlines...")
-    arcpy.AddField_management(flowlines,"ProcessID","LONG",6)
+    
 
     order = sorted(range(len(height)), key=lambda k: height[k])  ##order is the ID
+
+    arcpy.AddField_management(flowlines,"ProcessID","LONG", 10)
 
     with arcpy.da.UpdateCursor(flowlines, "ProcessID") as cursor: ##Fix the assigning order issue
         i = 0
@@ -261,8 +296,11 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
 
     for gid in range(len(uniqueiceID)):
         query = GlacierID + " = " + str(uniqueiceID[gid])
+        #arcpy.AddMessage(query)
         arcpy.AddMessage("Processing #" + str(gid+1) +"/" + str(len(uniqueiceID)) + " of reconstructed glaciers...")                                                                                       
+        
         arcpy.Select_analysis (flowlines, flowline, query)
+        #arcpy.CopyFeatures_management(flowline, "c:\\temp2\\flowline.shp")
 
         ###Select the flowline points corresponding to the flowlines
         arcpy.Select_analysis (flowline3dpoints, selflowline3dpoints, query)
@@ -311,14 +349,17 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
                 break
             i += 1
 
-        arcpy.Clip_analysis (ws, icebndpolys, icepolyselect)
+        arcpy.Clip_analysis (ws, icebndpolys, "in_memory\\icepolycliped")
+        ##Convert to single parts
+        arcpy.MultipartToSinglepart_management("in_memory\\icepolycliped", icepolyselect)
         #remove the potential spurious polygons
         with arcpy.da.UpdateCursor(icepolyselect, "SHAPE@AREA") as cursor:
             i = 0
             for row in cursor:
                 i += 1
                 if row[0] < minArea:
-                    cursor.deleteRow()  
+                    cursor.deleteRow()
+                    #arcpy.AddMessage("delete one spurious polygon!")
         del cursor
         #arcpy.AddMessage("the number of icepolyselect is:" + str(i))
         if i> 0:
@@ -346,7 +387,7 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
         selflowline3dpointsold2 = "in_memory\\selflowline3dpointsold2"
         nloop = 0
         while (bStop == False) and (nloop < 10):
-            icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "thick", "in_memory\\icesurface")
+            icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, cellsize_float, icepolyselect, "thick", "in_memory\\icesurface")
 
             if bAdjustSS == False:
                 #ss = shear_stress_calculation (mainflowline, icepoly, icesurface)
@@ -363,7 +404,7 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
                 if ss > max_ss:
                     ss = max_ss
                 
-            arcpy.AddMessage("The calculated shear stress is:" + str(ss) + " and the difference with the previous value is " + str(abs(ss-ss0)/ss0))
+            arcpy.AddMessage("The calculated shear stress is:" + str(ss) + " and the percentage difference with the previous value is " + str(abs(ss-ss0)/ss0)) ####+ " \%"
             ss_ratio = abs(ss - ss0)/ss0
             if abs(ss_ratio - ss_ratio0)< 0.005 or (ss_ratio < 0.01):  ##assuming ss always increase, to stop if decreasing; ##use 1.0% change as the threshold to stop the loop
                 break
@@ -410,14 +451,20 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
     arcpy.AddField_management(outline_lines_in, "contour", "SHORT")
     arcpy.CalculateField_management(outline_lines_in,"contour",0)
     cellsize_interp = cellsize_float
-    interpolated_ice_depth = TopoToRaster([TopoPointElevation([[outpoints, 'thick']]), TopoContour([[outline_lines_in, 'contour']]), TopoBoundary ([singlepart_outlines])], cellsize_interp, "", '20', '0', '#', 'NO_ENFORCE', "SPOT", '1', '#', '1', '0', '0', '200') ##,"","","","",0.1)
-    arcpy.CopyRaster_management (interpolated_ice_depth, outIceThickness)
 
+    ##Select only the ice thick > 0 for the thickness interpretation to prevent the negative ice thickness interpretation
+    outpoints_not_zero = "in_memory\\outpoints_not_zero"
+    arcpy.Select_analysis (outpoints, outpoints_not_zero, "thick > 0")
+    interpolated_ice_depth = TopoToRaster([TopoPointElevation([[outpoints_not_zero, 'thick']]), TopoContour([[outline_lines_in, 'contour']]), TopoBoundary ([singlepart_outlines])], cellsize_interp, singlepart_outlines, '#', '#', '#', 'ENFORCE')####, "SPOT", '1', '#', '1', '0', '0', '200') ##,"","","","",0.1)
+    outThickness = Con(interpolated_ice_depth > 0, interpolated_ice_depth, 0)
+    arcpy.CopyRaster_management (outThickness, outIceThickness)
     ##Get ice surface based on ice thickness
-    icesurface_final = interpolated_ice_depth + BedDEM
+    icesurface_final = outThickness + BedDEM
     ##Should make sure that no negtive value for the thickness, is negative, set as zero?? Need to explore where are these negative values
     arcpy.CopyRaster_management (icesurface_final, outIceSurfaces)
-
+    #except:
+    #    arcpy.AddMessage("This is an error in TopoToRaster")
+        
     ##Delete temp datasets
     arcpy.Delete_management(icesurs) 
 

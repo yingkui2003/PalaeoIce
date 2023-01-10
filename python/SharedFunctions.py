@@ -386,6 +386,7 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
         shear_list = []
         contour = startz
         oldsegmentlength = 0
+        cum_segment_length = 0
         while contour < endz:
             start_contour = contour
             end_contour = contour + contour_interval
@@ -417,7 +418,7 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
                     #arcpy.AddMessage("Attention: error!!!")
                     cum_segment_length = 0
             else: ##The last peice to the highest Z
-                #arcpy.AddMessage("WARNING: end contour is larger than endZ")
+                #arcpy.AddMessage("WARNING: end contour is larger than endZ!!!")
                 segment_length = flowlinelength - cum_segment_length
             #arcpy.AddMessage("segment_length is:" +str(segment_length) )
             if segment_length > 0:
@@ -503,6 +504,7 @@ def Add_GlacierID_by_Touches (flowlines, field, outflowline):
                         idlist.append(idlist[a])
             ##update leftover
             leftover = len(array) - len(glaciers)
+            #arcpy.AddMessage("Leftover is: " + str(leftover))
 
     ##Finally add GlacierID to the outflowline
     i = 0
@@ -1733,6 +1735,7 @@ def create_perpendiculars_line_sections(in_lines, distance):
 def create_axis(outline, dem):
     outline_feature_count = arcpy.GetCount_management(outline)          #check outline is a single feature - count"
     outline_feature_count_result = int(outline_feature_count.getOutput(0))      #check outline is a single feature - get result"
+    #arcpy.AddMessage(str(outline_feature_count_result))
     if outline_feature_count_result > 1:                                       #check outline is a single feature"
         outline = arcpy.Dissolve_management(outline, "in_memory\\dissolved_outline")
     mbg = arcpy.MinimumBoundingGeometry_management(outline, "in_memory\\mbg", "CONVEX_HULL", "NONE", "","MBG_FIELDS") #create minimum bounding geometry, convex hull method"
@@ -2075,11 +2078,9 @@ def flowline (central_points_with_alt, dem, flow_line_output, flowline_glacier_o
 # The code is revised from Volta centerline.
 #------------------------------------------------------------------------------------------------------------
 def new_branch(input_flowline, dem, branch_outline, input_outline, TributaryRatio, TributarySourceThreshold):  
+    #arcpy.AddMessage("New branch Check...")
     cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
     cellsize_float = float(cellsize.getOutput(0))
-    with arcpy.da.SearchCursor(input_outline, ["SHAPE@AREA"]) as cursor:
-        for row in cursor:
-            outline_area = row[0]
 
     clipped_dem_raster = ExtractByMask(dem,input_outline)  
     arcpy.env.extent = clipped_dem_raster
@@ -2103,8 +2104,9 @@ def new_branch(input_flowline, dem, branch_outline, input_outline, TributaryRati
     FcID = arcpy.Describe(branch_points_alt).OIDFieldName
     pntcount_result = arcpy.GetCount_management(branch_points_alt)
     pntcount = int(pntcount_result.getOutput(0))
-    for i in range(pntcount):
-        tempRs = arcpy.env.scratchFolder + "\\r" + str(i+1) ###Create a temp raster file. In-memory doesnot work for raster???
+    #arcpy.AddMessage("point count is:" + str(pntcount))
+    for i in range(1, pntcount):
+        tempRs = arcpy.env.scratchFolder + "\\r" + str(i) ###Create a temp raster file. In-memory doesnot work for raster???
         if new_branch_count == 0:
             query = FcID+" = "+str(i+1)
             arcpy.Select_analysis(branch_points_alt, "in_memory\\select_branch_points", query) ###Just do a simply select analysis
@@ -2125,47 +2127,63 @@ def new_branch(input_flowline, dem, branch_outline, input_outline, TributaryRati
             zone_cells = np.argwhere(labeled_array == zone) ##Find the same zone with the corresponding point, ##How about using a flow accumulation along a cross section (horizontal surface cut the DEM/facc) of the point
             total_cells = int(len(zone_cells))                 ## It seems that the scipy.ndimage method is still the best
             upstream_area = total_cells*cellsize_float*cellsize_float
-               
-            if i > 1:   # in memory always starts from 1
-                increase_ratio = float(i)/float(i+1) ##This is assume a natural increase in area becasue the point moves down
-                percentage_change = (float(upstream_area* increase_ratio)/float(upstream_area_original))
-                upstream_area_original = upstream_area
-                    
-                if upstream_area < TributarySourceThreshold or percentage_change < (1.0 + TributaryRatio) or percentage_change >5.0: ##>5.0 is for the start point
-                    newarray = labeled_array.copy()
-                    newarray[newarray != zone] = 0
-                    newarray[newarray == zone] = 1
-                    glacier_numpy[newarray == 1] = 0     ##So in this case, a new branch will not be created???, but change glacier_numpy array
-                else:
-                    left_co_ord = arcpy.GetRasterProperties_management(clipped_dem_raster,"LEFT")
-                    bottom_co_ord = arcpy.GetRasterProperties_management(clipped_dem_raster,"BOTTOM")
-                    left_co_ord_float = float(left_co_ord.getOutput(0))
-                    bottom_co_ord_float = float(bottom_co_ord.getOutput(0))
-                    bottom_left_point = arcpy.Point(left_co_ord_float,bottom_co_ord_float)
-                    new_branch_raster = Int(arcpy.NumPyArrayToRaster(glacier_numpy, bottom_left_point, cellsize_float, cellsize_float, 0))
-                    new_branch_outline_unclipped = arcpy.RasterToPolygon_conversion(new_branch_raster, "in_memory\\new_branch_outline_unclipped", "SIMPLIFY")
+            #arcpy.AddMessage(str(upstream_area_original))   
+            #if (upstream_area_original > 0):   # in memory always starts from 1
+            increase_ratio = float(i)/float(i+1) ##This is assume a natural increase in area becasue the point moves down
+            percentage_change = (float(upstream_area* increase_ratio)/float(upstream_area_original+1))
+            upstream_area_original = upstream_area
+                
+            if upstream_area < TributarySourceThreshold or percentage_change < (1.0 + TributaryRatio) or percentage_change >5.0: ##>5.0 is for the start point
+                newarray = labeled_array.copy()
+                newarray[newarray != zone] = 0
+                newarray[newarray == zone] = 1
+                glacier_numpy[newarray == 1] = 0     ##So in this case, a new branch will not be created???, but change glacier_numpy array
+            else:
+                left_co_ord = arcpy.GetRasterProperties_management(clipped_dem_raster,"LEFT")
+                bottom_co_ord = arcpy.GetRasterProperties_management(clipped_dem_raster,"BOTTOM")
+                left_co_ord_float = float(left_co_ord.getOutput(0))
+                bottom_co_ord_float = float(bottom_co_ord.getOutput(0))
+                bottom_left_point = arcpy.Point(left_co_ord_float,bottom_co_ord_float)
+                new_branch_raster = Int(arcpy.NumPyArrayToRaster(glacier_numpy, bottom_left_point, cellsize_float, cellsize_float, 0))
+                new_branch_outline_unclipped = arcpy.RasterToPolygon_conversion(new_branch_raster, "in_memory\\new_branch_outline_unclipped", "SIMPLIFY")
 
-                    ##Make sure to remove spurious polygons
-                    branchcount = arcpy.GetCount_management(new_branch_outline_unclipped) #COUNT HOW MANY OUTLINES IN TOTAL (FOR PROGRESS REPORT)
-                    branchcount_result = int(branchcount.getOutput(0)) #GET INT RESULT OF OUTLINE COUNT FOR PROGRESS REPORT)
+                ##Make sure to remove spurious polygons
+                branchcount = arcpy.GetCount_management(new_branch_outline_unclipped) 
+                branchcount_result = int(branchcount.getOutput(0))
+                #arcpy.AddMessage(str(branchcount_result))
+                if branchcount_result > 0:
                     if branchcount_result > 1: ##if more than one polygon, just use the largest one
                         maxArea = 0
-                        with arcpy.da.SearchCursor(new_branch_outline_unclipped, "SHAPE@AREA") as cursor:        ##DELETE MAX AND MIN POUNTS TO STOP CODE FAILING CLOSE TO MARGIN
-                            for row in cursor:                                                              ###!!This is the problem that the flowline does not extend to the boundary
+                        with arcpy.da.SearchCursor(new_branch_outline_unclipped, "SHAPE@AREA") as cursor:        
+                            for row in cursor:                                                             
                                 if row[0] > maxArea:
                                     maxArea = row[0]   ##Just remove the max elevation and keep the lowest elevation
                         del cursor, row
-                        with arcpy.da.UpdateCursor(new_branch_outline_unclipped, "SHAPE@AREA") as cursor:        ##DELETE MAX AND MIN POUNTS TO STOP CODE FAILING CLOSE TO MARGIN
-                            for row in cursor:                                                              ###!!This is the problem that the flowline does not extend to the boundary
+                        with arcpy.da.UpdateCursor(new_branch_outline_unclipped, "SHAPE@AREA") as cursor:        
+                            for row in cursor:                                                              
                                 if row[0] < maxArea:
-                                    cursor.deleteRow()  ##Just remove the max elevation and keep the lowest elevation
+                                    arcpy.AddMessage("Delete spurous polygon!")
+                                    cursor.deleteRow()  
                         del cursor, row
-
-                    arcpy.Clip_analysis(new_branch_outline_unclipped, input_outline, branch_outline)
+                    #try:
+                    new_branch_outline = arcpy.Clip_analysis(new_branch_outline_unclipped, input_outline, branch_outline)
+                    #    #arcpy.AddMessage("an process correctly")
+                    #    new_branch_count = 1
+                    #except:
+                    #    new_branch_outline = branch_outline
+                    #    arcpy.AddMessage("an error happens")
+                    #    new_branch_count = 0
                     new_branch_count = 1
                     break
 
-    return branch_outline, new_branch_count
+    if new_branch_count > 0:
+        #arcpy.AddMessage("Return new_branch_outline!!")
+        return new_branch_outline, new_branch_count
+    else:
+        #arcpy.AddMessage("Return no new branch_outline!!")
+        return None, new_branch_count
+
+    #return branch_outline, new_branch_count
 
 #------------------------------------------------------------------------------------------------------------
 # This function creates parallels points based on a series of points.

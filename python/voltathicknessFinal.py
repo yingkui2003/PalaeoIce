@@ -97,8 +97,14 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
             row[1] = int(shear_stress_value)
             cursor.updateRow(row)
     del row, cursor
+
+    #arcpy.CopyFeatures_management(outline, "d:\\temp\\outline.shp")
+    #arcpy.CopyFeatures_management(flowline, "d:\\temp\\flowline.shp")
     
-    flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","","","", "WITHIN_CLEMENTINI")
+    #flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","","","", "WITHIN_CLEMENTINI")
+    flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","JOIN_ONE_TO_ONE", "KEEP_COMMON","", "COMPLETELY_WITHIN")
+    #arcpy.CopyFeatures_management(flowline_joined, "d:\\temp\\flowline_joined.shp")
+
     flowline_layer_split_vertex = arcpy.SplitLine_management(flowline, "in_memory\\flowline_layer_split_vertex")
     flowline_layer_split_vertex_layer = arcpy.MakeFeatureLayer_management(flowline_layer_split_vertex, "in_memory\\flowline_layer_split_vertex_layer")
 
@@ -113,6 +119,7 @@ def Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_s
             points_glac = "in_memory\\points_glac"+str(row[0])
             flowline_id = row[0]
             outline_id = row[1]
+            #arcpy.AddMessage("outline_id: " + str(outline_id))
             flowline_query = "line_id = "+str(flowline_id)
             outline_query = "outline_id = "+str(outline_id)
 
