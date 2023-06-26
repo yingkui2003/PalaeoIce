@@ -196,7 +196,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
     ##select the centerlines only within the sel_outlines
     arcpy.Clip_analysis ("in_memory\\other_centerlines","in_memory\\sel_outlines", "in_memory\\sel_other_centerlines")
     
-    arcpy.CopyFeatures_management("in_memory\\sel_other_centerlines", "c:\\test\\sel_other_centerlines.shp")
+    #arcpy.CopyFeatures_management("in_memory\\sel_other_centerlines", "c:\\test\\sel_other_centerlines.shp")
     
     ##only select the flowlinecopy that is intersected/or touched with the connection line
     connected_flowline = "in_memory\\connected_flowline"
@@ -220,7 +220,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
  
     ##append the other centerlines to the dissolveflowline
     arcpy.Append_management("in_memory\\sel_other_centerlines", dissolvedlines2, "NO_TEST")
-    arcpy.CopyFeatures_management(dissolvedlines2, "c:\\test\\dissolvedlines2.shp")
+    #arcpy.CopyFeatures_management(dissolvedlines2, "c:\\test\\dissolvedlines2.shp")
     
 
     ###remove the flowline within the glacier outlines by select by attribute
