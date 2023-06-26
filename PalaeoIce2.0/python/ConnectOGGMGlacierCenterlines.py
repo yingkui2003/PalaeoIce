@@ -99,7 +99,7 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, dem, search_dis,
             arcpy.Append_management(sel_flowlines, new_flowlines, "NO_TEST")
         else:
             minheight = min(heights)
-            arcpy.AddMessage(str(minheight))
+            #arcpy.AddMessage(str(minheight))
             ##Copy the line with minheight as a seperated flowline
             query = 'RASTERVALU' +" = "+str(minheight)
             arcpy.Select_analysis(flowlines_with_start_ele,lowest_flowline,query)
@@ -121,7 +121,7 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, dem, search_dis,
             numLoop = 1
             while (bLoop):
                 search_radius = str(numLoop* search_dis) + " Meters"
-                arcpy.AddMessage(search_radius)
+                #arcpy.AddMessage(search_radius)
                 if numLoop* search_dis < 500: ##if larger than 100 m, try using the end points
                     arcpy.Near_analysis(otherline_start_nodes, lowest_flowline_points, search_radius, "LOCATION", "")
                 else: ##if larger than 100 m, try using the end points
@@ -154,7 +154,7 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, dem, search_dis,
                     connectionline = arcpy.CreateFeatureclass_management("in_memory", "connectionline","POLYLINE","","","",dem)
                     new_line_cursor = arcpy.da.InsertCursor(connectionline, ('SHAPE@'))
                     for i in range(len(NearID)):
-                        arcpy.AddMessage("Add line: " + str(i))
+                        #arcpy.AddMessage("Add line: " + str(i))
                         array = arcpy.Array([arcpy.Point(x2[i],y2[i]),arcpy.Point(x1[i], y1[i])])
                         polyline = arcpy.Polyline(array)
                         new_line_cursor.insertRow([polyline])

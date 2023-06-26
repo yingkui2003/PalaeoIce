@@ -25,7 +25,7 @@ def Check_Flowline_Overlap(inflowline, outflowline):
             ids.append(row[1])
     del row, cursor
 
-    arcpy.AddMessage(str(len(lines)))
+    #arcpy.AddMessage(str(len(lines)))
 
     removeIds = [] 
     for i in range(len(lines)):
@@ -36,20 +36,20 @@ def Check_Flowline_Overlap(inflowline, outflowline):
             within = line.within(lines[j])  
             equals = line.equals(lines[j])  
             if equals: ##== True: ##if the start point touches others
-                arcpy.AddMessage("Equals")
+                #arcpy.AddMessage("Equals")
                 #if j not in removeIds:
                 removeIds.append(ids[i])
             elif within:## == True:
-                arcpy.AddMessage("Within but not equals")
+                #arcpy.AddMessage("Within but not equals")
                 removeIds.append(ids[i])
                     
-        arcpy.AddMessage("Finish " + str(i))
-    arcpy.AddMessage(removeIds)
+        #arcpy.AddMessage("Finish " + str(i))
+    #arcpy.AddMessage(removeIds)
                     
     with arcpy.da.UpdateCursor(flowline, ["OID@"]) as cursor:
         for row in cursor:
             if row[0] in removeIds:
-                arcpy.AddMessage("Delete one")
+                #arcpy.AddMessage("Delete one")
                 cursor.deleteRow()
     del row, cursor
 

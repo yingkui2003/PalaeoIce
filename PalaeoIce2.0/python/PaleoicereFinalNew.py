@@ -630,7 +630,7 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     with arcpy.da.UpdateCursor(primary_flowline,["SHAPE@LENGTH"]) as cursor:
         for row in cursor:
             if row[0] < max_length:
-                arcpy.AddMessage("Delete one line")
+                #arcpy.AddMessage("Delete one line")
                 cursor.deleteRow()
     del row, cursor
     
@@ -847,7 +847,7 @@ def Ice_Thickness_Calculation(flowPnts, min_ss, max_ss):
                     else:
                         Array[i][7] = Array[i][0]  ##reset the ice surface to bedDEM
                 except:
-                    arcpy.AddMessage("There is an error, pass!")
+                    #arcpy.AddMessage("There is an error, pass!")
                     pass
 
         if len(ratios) == 0: ##if there are no target features
@@ -1462,7 +1462,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
         else:
             nloop = 0
             while (bStop == False) and (nloop < 10):
-                arcpy.AddMessage("nLoop is: " + str(nloop))
+                #arcpy.AddMessage("nLoop is: " + str(nloop))
                 icesurface, icepoly, CS_ice_points = IceSurfaceCalculation_with_crosssection_pnts (selflowline3dpoints, BedDEM, ws, cross_section_pnts, Interpolation_Method, bFeatureComparison, "in_memory\\selTargetFC", "ice", "in_memory\\icesurface", "in_memory\\icepoly", "in_memory\\CS_ice_points")
                 '''
                 ##Calculate the dist to Target

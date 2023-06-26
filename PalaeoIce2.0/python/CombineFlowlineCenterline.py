@@ -265,7 +265,7 @@ if __name__ == '__main__':
     
     clipped_dem = ExtractByMask(dem,mbg_buf)
 
-    arcpy.AddMessage("Use clipped DEM")
+    #arcpy.AddMessage("Use clipped DEM")
 
     Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinepolys, inputWS, clipped_dem, SearchDis, combineflowline)
 

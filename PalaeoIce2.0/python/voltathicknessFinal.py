@@ -43,12 +43,12 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     with arcpy.da.UpdateCursor(primary_flowline,["SHAPE@LENGTH"]) as cursor:
         for row in cursor:
             if row[0] < max_length:
-                arcpy.AddMessage("Delete one line")
+                #arcpy.AddMessage("Delete one line")
                 cursor.deleteRow()
     del row, cursor
     
     flowlinelength = max_length
-    arcpy.AddMessage("Flowline Length is: " + str(flowlinelength))
+    #arcpy.AddMessage("Flowline Length is: " + str(flowlinelength))
 
 
     ##4/21/2023: Can also used the extract value to  with the interpretation option
@@ -60,7 +60,7 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
             elev.append(row[0])
     del row, cursor
 
-    arcpy.AddMessage(elev)
+    #arcpy.AddMessage(elev)
     startz = min(elev)
     endz = max(elev)
     Zdiff = float(endz - startz)
@@ -101,24 +101,24 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     z_start = startz
     sum_a_cos_sin = 0
     while (z_start < endz):
-        arcpy.AddMessage("Z_start is: " + str(z_start))
+        #arcpy.AddMessage("Z_start is: " + str(z_start))
         z_end = min(z_start + contour_interval, endz)
-        arcpy.AddMessage("z_end is: " + str(z_end))
+        #arcpy.AddMessage("z_end is: " + str(z_end))
         ##get flowline length within the bin
         outCon = Con(((extractDEM > z_start) & (extractDEM < z_end)), 1)
         arcpy.RasterToPolygon_conversion(outCon, elev_bin_polygon, "SIMPLIFY", "VALUE")
         polyArr = arcpy.da.FeatureClassToNumPyArray(elev_bin_polygon, ('SHAPE@AREA'))
         areas = np.array([item[0] for item in polyArr])
-        arcpy.AddMessage(areas)
+        #arcpy.AddMessage(areas)
         if len(areas) > 0:
             area = max(areas)
-            arcpy.AddMessage("Area is:" + str(area))
+            #arcpy.AddMessage("Area is:" + str(area))
             arcpy.Clip_analysis(primary_flowline, elev_bin_polygon, subset_flowline) ### Use clip analysis to replace the select by location
             arcpy.MultipartToSinglepart_management(subset_flowline, "in_memory\\singlepart_subset_flowline")
             lengthArr = arcpy.da.FeatureClassToNumPyArray("in_memory\\singlepart_subset_flowline", ('SHAPE@LENGTH'))
             lengths = np.array([item[0] for item in lengthArr])
-            arcpy.AddMessage("flowline Lengths is:")
-            arcpy.AddMessage(lengths)
+            #arcpy.AddMessage("flowline Lengths is:")
+            #arcpy.AddMessage(lengths)
             if len(lengths) > 0:
                 max_length = max(lengths)
                 if max_length > 0:

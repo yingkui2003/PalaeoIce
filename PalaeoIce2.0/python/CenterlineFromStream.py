@@ -173,10 +173,10 @@ def Check_Flowline_Overlap(flowline, Distance):
             if j != i: ##don't touch itself
                 within = (line.equals(lines[j]) or line.within(lines[j]))  
                 if within == True: ##if the start point touches others
-                    arcpy.AddMessage("Within")
+                    #arcpy.AddMessage("Within")
                     ##record the i as removed
                     removeIds.append(i)
-    arcpy.AddMessage(removeIds)
+    #arcpy.AddMessage(removeIds)
                     
 
 #------------------------------------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
             ##erase the moraines by watershed to see if there is some outside of the watershed
             arcpy.Erase_analysis(moraineselected, tmpws, "in_memory\\moraine_outside")
             outsideArr = arcpy.da.FeatureClassToNumPyArray( "in_memory\\moraine_outside", 'OID@')
-            arcpy.AddMessage("moraine outside parts: " + str(len(outsideArr)))
+            #arcpy.AddMessage("moraine outside parts: " + str(len(outsideArr)))
             if len(outsideArr) > 0:
                 ws_line = "in_memory\\ws_line"
                 arcpy.PolygonToLine_management(tmpws, ws_line)
@@ -302,7 +302,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
             with arcpy.da.UpdateCursor(tmpws, 'SHAPE@AREA') as cursor:
                 for row in cursor:
                     if int(row[0]) < (max_area - 0.5):
-                        arcpy.AddMessage("Delete one outline!")
+                        #arcpy.AddMessage("Delete one outline!")
                         cursor.deleteRow()     
             del cursor, row				
 
@@ -396,7 +396,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
                 arcpy.Dissolve_management(tmpoutStream, CleanStream, '#', 'MAX MAX', 'SINGLE_PART', 'UNSPLIT_LINES') 
             
                 streamArr = arcpy.da.FeatureClassToNumPyArray(CleanStream, 'OID@')
-                arcpy.AddMessage("The number of streams: " + str(len(streamArr)))
+                #arcpy.AddMessage("The number of streams: " + str(len(streamArr)))
                 if len(streamArr) > 0:
                     ##Remove big turns along the flowlines before smoothing it
                     newline = flowline_remove_bigturn(CleanStream, 120, cellsize_int)

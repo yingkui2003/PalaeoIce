@@ -503,12 +503,12 @@ def shear_stress_calculation_bak2(mainflowline, outline, icedem, min_ss, max_ss)
     with arcpy.da.UpdateCursor(primary_flowline,["SHAPE@LENGTH"]) as cursor:
         for row in cursor:
             if row[0] < max_length:
-                arcpy.AddMessage("Delete one line")
+                #arcpy.AddMessage("Delete one line")
                 cursor.deleteRow()
     del row, cursor
     
     flowlinelength = max_length
-    arcpy.AddMessage("Flowline Length is: " + str(flowlinelength))
+    #arcpy.AddMessage("Flowline Length is: " + str(flowlinelength))
 
 
     ##4/21/2023: Can also used the extract value to  with the interpretation option
@@ -521,7 +521,7 @@ def shear_stress_calculation_bak2(mainflowline, outline, icedem, min_ss, max_ss)
             elev.append(row[0])
     del row, cursor
 
-    arcpy.AddMessage(elev)
+    #arcpy.AddMessage(elev)
     if str(elev[0]) != "None":
         startz = elev[0]
     else:
@@ -573,9 +573,9 @@ def shear_stress_calculation_bak2(mainflowline, outline, icedem, min_ss, max_ss)
     z_start = startz
     sum_a_cos_sin = 0
     while (z_start < endz):
-        arcpy.AddMessage("Z_start is: " + str(z_start))
+        #arcpy.AddMessage("Z_start is: " + str(z_start))
         z_end = min(z_start + contour_interval, endz)
-        arcpy.AddMessage("z_end is: " + str(z_end))
+        #arcpy.AddMessage("z_end is: " + str(z_end))
         ##get flowline length within the bin
         outCon = Con(((extractDEM > z_start) & (extractDEM < z_end)), 1)
         arcpy.RasterToPolygon_conversion(outCon, elev_bin_polygon, "SIMPLIFY", "VALUE")
@@ -584,13 +584,13 @@ def shear_stress_calculation_bak2(mainflowline, outline, icedem, min_ss, max_ss)
         arcpy.AddMessage(areas)
         if len(areas) > 0:
             area = max(areas)
-            arcpy.AddMessage("Area is:" + str(area))
+            #arcpy.AddMessage("Area is:" + str(area))
             arcpy.Clip_analysis(primary_flowline, elev_bin_polygon, subset_flowline) ### Use clip analysis to replace the select by location
             arcpy.MultipartToSinglepart_management(subset_flowline, "in_memory\\singlepart_subset_flowline")
             lengthArr = arcpy.da.FeatureClassToNumPyArray("in_memory\\singlepart_subset_flowline", ('SHAPE@LENGTH'))
             lengths = np.array([item[0] for item in lengthArr])
-            arcpy.AddMessage("flowline Lengths is:")
-            arcpy.AddMessage(lengths)
+            #arcpy.AddMessage("flowline Lengths is:")
+            #arcpy.AddMessage(lengths)
             if len(lengths) > 0:
                 max_length = max(lengths)
                 if max_length > 0:
@@ -1214,7 +1214,7 @@ def AdjustFfactor_with_cross_section_pnts (flowlinepoints, cross_section_pnts, i
     ##Caclucate the mean f factor for return
     meanFfactor = np.mean(ffactors)
     
-    arcpy.AddMessage("Mean_ffactor is: " + str(meanFfactor))
+    #arcpy.AddMessage("Mean_ffactor is: " + str(meanFfactor))
     
     return meanFfactor
 
@@ -1304,7 +1304,7 @@ def AdjustFfactor_Ployfit_with_cross_section_pnts (flowlinepoints, cross_section
     ##Caclucate the mean f factor for return
     meanFfactor = np.mean(ffactors)
     
-    arcpy.AddMessage("Mean_ffactor is: " + str(meanFfactor))
+    #arcpy.AddMessage("Mean_ffactor is: " + str(meanFfactor))
     
     return meanFfactor
 
@@ -2355,7 +2355,7 @@ def new_branch(input_flowline, dem, branch_outline, input_outline, TributaryRati
                         with arcpy.da.UpdateCursor(new_branch_outline_unclipped, "SHAPE@AREA") as cursor:        
                             for row in cursor:                                                              
                                 if row[0] < maxArea:
-                                    arcpy.AddMessage("Delete spurous polygon!")
+                                    #arcpy.AddMessage("Delete spurous polygon!")
                                     cursor.deleteRow()  
                         del cursor, row
                     #try:

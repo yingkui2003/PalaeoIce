@@ -205,7 +205,7 @@ def Centerline_Volta (glacier_outlines, dem, TributaryRatio, tributary_threshold
         #arcpy.CopyFeatures_management(new_branch_poly, "d:\\temp\\new_branch_poly.shp")
         #arcpy.AddMessage("the number of new branch is:" +str(new_branch_count))
         if new_branch_count == 0:
-            arcpy.AddMessage("Add one line!")
+            #arcpy.AddMessage("Add one line!")
             arcpy.Append_management(initial_flowline, flow_line_final, "NO_TEST")
 
         ##Back to the old codes
