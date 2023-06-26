@@ -1,11 +1,27 @@
-# PalaeoIce 2.0 is available!!!
+# PalaeoIce 2.0 is available (06/26/2023)
 PalaeoIce 2.0 is the updated version of the PalaeoIce toolbox. The major changes of PalaeoIce 2.0 includes:
 1.	Added a set of new tools for extant glacier centerlines, extant glacier thickness, flowline quality check, and bare-earth topography preparation.
 2.	Reorganize the toolbox and removed the two fully automated tools because most reconstructions need to check separated steps and there are more tools for each step of the reconstruction.
 3.	PalaeoIce used one shear stress to derive the ice thickness in all flowlines of a glacier. This may not be suitable for a glacier with many tributaries because different tributaries may have different shear stress values. PalaeoIce 2.0 revised the shear stress optimization method and each flowline will have its corresponding optimized shear stress based on the best-fit with the target elevations along the flowline.
 4.	Revise the two palaeoice reconstruction tools to provide six surface interpretation methods. PalaeoIce used the TopoToRaster method to interpolate ice thickness raster first and then add the ice thickness raster to the bed topography to derive the ice surface topography. This created a smoothed ice thickness raster, but the ice surface elevation raster has high roughness corresponding to the variations in bed topography. PalaeoIce 2.0 interpolates the ice surface elevation raster first with the selection of one of the six methods. This will create a relatively smoother ice surface elevation raster. Then, ice thickness raster is generated based on the difference between the ice surface elevation raster and bed topography. This revision is more consistent with the field observation that glaciers usually has a smooth ice surface topography.
 
-# Introduction
+Because Esri will retire and no longer support ArcGIS 10, the updated PalaeoIce 2.0 toolbox is only for ArcGIS Pro. A tbx toolbox file is provided to support ArcGIS Pro 2.8 and newer and a atbx toolbox is provided to support ArcGIS Pro 3.1 or newer.
+
+The PalaeoIce 2.0 toolbox includes 13 tools that are organized in three toolsets: 1) ‘Flowline Creation’; 2) ‘Bare Earth Topography Preparation’; and 3) ‘Palaeoice Reconstruction’. Additional sub-toolsets are created within each toolsets for the organization purpose. The following is the screenshot of this updated toolbox. 
+![image](https://github.com/yingkui2003/PalaeoIce/assets/24683137/bf9d24ef-03be-49f3-ad2b-b4c7412800a8)
+
+In the "Flowline Creation" toolset, two new tools are added in addtion to the three tools in PalaeoIce 1.0. 
+
+## Connect OGGM centerlines
+This tool connects the modern glacier centerlines derived by the OGGM model.  Maussion et al., 2019. used the OGGM model to derived the centerlines of all RGI 6.0 glaciers (https://docs.oggm.org/en/stable/assets.html). Therefore, these centerlines can be used in PalaeoIce. However, the OGGM centerlines from different tributaries within a glacier are not connected. This tool connect the centerlines within a glacier to generate a connected centerline system for PalaeoIce Reconstruction. 
+![image](https://github.com/yingkui2003/PalaeoIce/assets/24683137/e170f8f1-1603-4f39-9cb2-905df913b5b5)
+
+## Remove Overlapping Flowlines
+This tool removes the potential overlapping flowlines (one flowline is the identical or a small section of another flowline). The overlapping flowlines may cause the errors in the palaeoice reconstruction.
+![image](https://github.com/yingkui2003/PalaeoIce/assets/24683137/d6699596-f96c-4ea5-a88b-d7d13a819276)
+
+
+# PalaeoIce 1.0
 PalaeoIce is an automated method to reconstruct palaeoglaciers based on a digital elevation model (DEM) and geomorphic constraints. Coded in python, PalaeoIce provides a set of tools with user-friendly interfaces to generate glacial flowlines, optimize shear stress, derive shape factors, calculate ice thickness values along flowlines, and interpret palaeo ice surfaces based on geomorphic constraints. The GIS datasets used for these tools, such as the DEM, moraines/cross sections, and extant glacier outline(s), are recommended to use a UTM projection to ensure the correct calculations of the lengths, angles, and areas related to palaeoglacier reconstruction. The toolbox and tools have been tested successfully for ArcGIS 10.7 and 10.8 and ArcGIS Pro 2.8, 2.9 and 3.0. The PalaeoIce toolbox and the related python source codes for each tool are available on https://github.com/yingkui2003/PalaeoIce. 
 
 The PalaeoIce toolbox includes nine GIS tools: Seven tools are organized in three toolsets: 1) ‘Flowline Creation’; 2) ‘Extant Glacier Topography Removal’; and 3) ‘PalaeoIce Reconstruction’. These tools provide the individual steps, allowing for the users to check and adjust the output(s) of each step for palaeoglacier reconstruction. The PalaeoIce toolbox also provides two fully automated palaeoglacier reconstruction tools with and without the constraints of palaeoglacier boundaries to automatically process individual steps without user’s interventions. 
