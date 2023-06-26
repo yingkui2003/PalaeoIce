@@ -79,6 +79,7 @@ Li Y., 2023. PalaeoIce: an automated method to reconstruct palaeoglacier using g
 
 # Most recent updates
 01/10/2023: Fixed some bugs in the program.
+06/26/2023: PalaeoIce 2.0 is available. This updated toolbox is only avaialble for ArcGIS Pro 2.8 (tbx) and ArcGIS 3.1 (atbx).
 
 # Contact info
 Yingkui Li
