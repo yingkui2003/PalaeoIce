@@ -1,5 +1,5 @@
 # PalaeoIce 2.0 is available!!!
-PalaeoIce 2.0 is the updated version of the PaleoIce toolbox. The major changes of PalaeoIce 2.0 includes:
+PalaeoIce 2.0 is the updated version of the PalaeoIce toolbox. The major changes of PalaeoIce 2.0 includes:
 1.	Added a set of new tools for extant glacier centerlines, extant glacier thickness, flowline quality check, and bare-earth topography preparation.
 2.	Reorganize the toolbox and removed the two fully automated tools because most reconstructions need to check separated steps and there are more tools for each step of the reconstruction.
 3.	PalaeoIce used one shear stress to derive the ice thickness in all flowlines of a glacier. This may not be suitable for a glacier with many tributaries because different tributaries may have different shear stress values. PalaeoIce 2.0 revised the shear stress optimization method and each flowline will have its corresponding optimized shear stress based on the best-fit with the target elevations along the flowline.
