@@ -9,7 +9,9 @@ PalaeoIce 2.0 is the updated version of the PalaeoIce toolbox. The major changes
 Because Esri will retire and no longer support ArcGIS 10, the updated PalaeoIce 2.0 toolbox is only for ArcGIS Pro 2.8 and newer.
 
 The PalaeoIce 2.0 toolbox includes 13 tools that are organized in three toolsets: 1) ‘Flowline Creation’; 2) ‘Bare Earth Topography Preparation’; and 3) ‘Palaeoice Reconstruction’. Additional sub-toolsets are created within each toolset for the organizing purpose. The following is the screenshot of this updated toolbox. 
-![image](https://github.com/yingkui2003/PalaeoIce/assets/24683137/bf9d24ef-03be-49f3-ad2b-b4c7412800a8)
+
+![image](https://github.com/yingkui2003/PalaeoIce/assets/24683137/e48c9eba-fef7-4cc4-a2c9-b7db8bc48754)
+
 
 In the "Flowline Creation" toolset, two new tools are added in addition to the three tools in PalaeoIce 1.0. 
 
