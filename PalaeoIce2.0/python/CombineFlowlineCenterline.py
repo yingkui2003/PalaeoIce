@@ -16,6 +16,77 @@
 from SharedFunctions import *  ## 
 
 #------------------------------------------------------------------------------------------------------------
+# This function smooths the flowline by adjusting the big turns.
+#------------------------------------------------------------------------------------------------------------
+def remove_bigturn(flowline, max_angle, cellsize):
+
+    simply_line = "in_memory\\simply_line"
+    
+    arcpy.SimplifyLine_cartography(flowline, simply_line, 'POINT_REMOVE', (str(cellsize) + ' Meters'))
+    arcpy.FeatureVerticesToPoints_management(simply_line, "in_memory\\flowline_points", 'All')
+
+    ###Create the new line after removing the outlier points
+    spatialref=arcpy.Describe(flowline).spatialReference
+    new_line = arcpy.CreateFeatureclass_management("in_memory", "new_line","POLYLINE", flowline,"","", spatialref)
+    arcpy.AddField_management(new_line, "ORIG_FID", "LONG")
+    #exist_fields = [f.name for f in arcpy.ListFields(simply_line)] #List of current field names in outline layer
+    #arcpy.AddMessage(exist_fields)
+    #fields = exist_fields[2:] ##The first two fields are FID and Geometry
+    #fields = "MergeID" ##The first two fields are FID and Geometry
+    #arcpy.AddMessage(fields)
+    
+    #linearray = arcpy.da.FeatureClassToNumPyArray(simply_line, fields)
+
+    pointarray = arcpy.da.FeatureClassToNumPyArray("in_memory\\flowline_points", ('SHAPE@X', 'SHAPE@Y','ORIG_FID'))
+    line_ids = np.array([item[2] for item in pointarray])
+    unique_line_ids = np.unique(line_ids)
+
+    for fid in unique_line_ids:
+        arr = pointarray[line_ids == fid]
+        ##Methd 2: move this point until the angle is larger than the max_angle
+        for row in range(len(arr)):
+            if row <(len(arr)-1) and row > 0:#if it is not first or last point of all
+                x1 = float(arr[row-1][0])
+                y1 = float(arr[row-1][1])
+                x = float(arr[row][0])
+                y = float(arr[row][1])
+                x2 = float(arr[row+1][0])
+                y2 = float(arr[row+1][1])
+                length1 = distance2points(x1, y1, x, y)
+                length2 = distance2points(x2, y2, x, y)
+                length  = distance2points(x1, y1, x2, y2)
+                pntangle = angle(length1, length2, length)
+                if pntangle < max_angle:
+                    midx = (x1 + x2)/2
+                    midy = (y1 + y2)/2
+                    for i in range(5):
+                        newx = x + (midx - x) * (i+1) / 5
+                        newy = y + (midy - y) * (i+1) / 5
+                        length1 = distance2points(x1, y1, newx, newy)
+                        length2 = distance2points(x2, y2, newx, newy)
+                        pntangle = angle(length1, length2, length)
+                        if pntangle > max_angle:
+                            arr[row][0] = newx
+                            arr[row][1] = newy
+                            break
+     
+        numpy_array_to_features(new_line, arr, ['SHAPE@X', 'SHAPE@Y'], 'ORIG_FID')
+
+    ##Assign field to the new_line
+    arcpy.DeleteField_management(new_line, 'ORIG_FID')
+    '''
+    with arcpy.da.UpdateCursor(new_line, fields) as cursor:
+        i = 0
+        for row in cursor:
+            for j in range(len(fields)):
+                row[j] = linearray[i][j]
+            cursor.updateRow(row)
+            i += 1
+    del cursor, row
+    '''
+    return new_line
+
+#------------------------------------------------------------------------------------------------------------
 # This fuction is the main program to combine flowlines and centerlines.
 #------------------------------------------------------------------------------------------------------------
 def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinepolysinput, inputWS, dem, SearchDis, combineflowline):
@@ -231,7 +302,9 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
         arcpy.DeleteField_management(dissolvedlines2,field) #Make sure to delete GlacierID. It will be added later in the paleoice reconstruction
 
     ##Remove big turns along the flowlines before smoothing it
-    newline = flowline_remove_bigturn(dissolvedlines2, 120, cellsize_float)
+    arcpy.CopyFeatures_management(dissolvedlines2, "c:\\test\\dissolvedlines2.shp")
+    
+    newline = remove_bigturn(dissolvedlines2, 120, cellsize_float)
     arcpy.cartography.SmoothLine(newline, "in_memory\\smmothline", "PAEK", 200)
 
     
@@ -239,6 +312,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
     #arcpy.CopyFeatures_management(dissolvedlines2, combineflowline)
 
     ##Do the intergrate again in case the smmothline does not break the connection of tributaries and the main flowline
+    
     try:
         arcpy.Integrate_management(combineflowline, int(cellsize_float))
     except:

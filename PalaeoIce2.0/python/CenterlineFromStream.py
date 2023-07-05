@@ -513,6 +513,31 @@ if __name__ == '__main__':
     StreamLine = arcpy.GetParameterAsText(5)
     outWatershed = arcpy.GetParameterAsText(6)
 
+    ##make sure the projection of the glacier outlines is the same with the UTM and the same with the DEM projection 
+    spatial_ref_crosssections = arcpy.Describe(InputMoraineorCrossSection).spatialReference
+    spatial_ref_dem = arcpy.Describe(InputDEM).spatialReference
+
+
+    #if "UTM" in spatial_ref_dem.name:
+    if spatial_ref_dem.linearUnitName == "Meter":
+        arcpy.AddMessage("The DEM projection is: " + spatial_ref_dem.name)
+    else:
+        arcpy.AddMessage("The unit of the DEM projection is not in meter. Please re-project the DEM to a projected coordinate system for the analysis!")
+        exit()   
+
+    #if "UTM" in spatial_ref_crosssections.name:
+    if spatial_ref_crosssections.linearUnitName == "Meter":
+        arcpy.AddMessage("The moraine cross section projection is: " + spatial_ref_crosssections.name)
+    else:
+        arcpy.AddMessage("The unit of the moraine cross section projection is not in meter. Please re-project it to a projected coordinate system for the analysis!")
+        exit()   
+
+    if spatial_ref_dem.name == spatial_ref_crosssections.name:
+        arcpy.AddMessage("Both DEM and moraine cross section have the same projected coordinate system: " + spatial_ref_dem.name)
+    else:
+        arcpy.AddMessage("The DEM and moraine cross section have different map projections. Please re-project the datasets to the same projection!")
+        exit()   
+        
     Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamThresholdKM2, TributaryThresholdKM2, TributaryRatio, StreamLine, outWatershed)
 
     ##Delete intermidiate data

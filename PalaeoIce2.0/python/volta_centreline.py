@@ -472,17 +472,26 @@ if __name__ == '__main__':
     spatial_ref_outlines = arcpy.Describe(glacier_outlines).spatialReference
     spatial_ref_dem = arcpy.Describe(dem).spatialReference
 
-    if "UTM" in spatial_ref_dem.name:
+    #if "UTM" in spatial_ref_dem.name:
+    if spatial_ref_dem.linearUnitName == "Meter":
         arcpy.AddMessage("The DEM projection is: " + spatial_ref_dem.name)
     else:
-        arcpy.AddMessage("The DEM projection is not UTM. Please re-project the DEM to a UTM projection for the analysis!")
+        arcpy.AddMessage("The unit of the DEM projection is not in meter. Please re-project the DEM to a projected coordinate system for the analysis!")
         exit()   
 
-    if "UTM" in spatial_ref_outlines.name:
+    #if "UTM" in spatial_ref_outlines.name:
+    if spatial_ref_outlines.linearUnitName == "Meter":
         arcpy.AddMessage("The outline projection is: " + spatial_ref_outlines.name)
     else:
-        arcpy.AddMessage("The outline projection is not UTM. Please re-project the outlines to a UTM projection for the analysis!")
+        arcpy.AddMessage("The unit of the outline projection is not in meter. Please re-project it to a projected coordinate system for the analysis!")
         exit()   
+
+    if spatial_ref_dem.name == spatial_ref_outlines.name:
+        arcpy.AddMessage("Both DEM and outlines have the same projected coordinate system: " + spatial_ref_dem.name)
+    else:
+        arcpy.AddMessage("The DEM and outlines have different map projections. Please re-project the datasets to the same projection!")
+        exit()   
+
 
     Centerline_Volta (glacier_outlines, dem, TributaryRatio, tributary_threshold, flow_line)
 

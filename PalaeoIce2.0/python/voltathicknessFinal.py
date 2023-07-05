@@ -230,8 +230,8 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
     #arcpy.CopyFeatures_management(flowline, "d:\\temp\\flowline.shp")
     
     #flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","","","", "WITHIN_CLEMENTINI")
-    flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","JOIN_ONE_TO_ONE", "KEEP_COMMON","", "COMPLETELY_WITHIN")
-    #arcpy.CopyFeatures_management(flowline_joined, "d:\\temp\\flowline_joined.shp")
+    flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","JOIN_ONE_TO_ONE", "KEEP_COMMON","", "HAVE_THEIR_CENTER_IN")
+    #arcpy.CopyFeatures_management(flowline_joined, "c:\\test\\flowline_joined.shp")
 
     flowline_layer_split_vertex = arcpy.SplitLine_management(flowline, "in_memory\\flowline_layer_split_vertex")
     flowline_layer_split_vertex_layer = arcpy.MakeFeatureLayer_management(flowline_layer_split_vertex, "in_memory\\flowline_layer_split_vertex_layer")
@@ -241,7 +241,8 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
         counter = 0
         for row in cursor:
             fl_length = row[3]
-            arcpy.AddMessage("Calculating ice thickness on centreline "+str(counter+1) + ' of ' +str(len(flow_id_list)))
+            #arcpy.AddMessage("Calculating ice thickness on centreline "+str(counter+1) + ' of ' +str(len(flow_id_list)))
+            arcpy.AddMessage("Calculating ice thickness on centreline "+str(row[0])) ##+ ' of ' +str(len(flow_id_list)))
             shape_factor_list = []
             yield_stress = row[2]
             points_glac = "in_memory\\points_glac"+str(row[0])
@@ -583,12 +584,12 @@ if __name__ == '__main__':
     spatial_outline = arcpy.Describe(outline).spatialReference
     spatial_ref_dem = arcpy.Describe(dem).spatialReference
 
+    '''
     if "UTM" in spatial_ref_dem.name:
         arcpy.AddMessage("The DEM projection is: " + spatial_ref_dem.name)
     else:
         arcpy.AddMessage("The DEM projection is not UTM. Please re-project the DEM to a UTM projection for the analysis!")
         exit()   
-
     if "UTM" in spatial_flowline.name:
         arcpy.AddMessage("The flowline projection is: " + spatial_flowline.name)
     else:
@@ -600,6 +601,38 @@ if __name__ == '__main__':
     else:
         arcpy.AddMessage("The outline projection is not UTM. Please re-project the outline to a UTM projection for the analysis!")
         exit()   
+    '''
+
+    if spatial_ref_dem.linearUnitName == "Meter":
+        arcpy.AddMessage("The DEM projection is: " + spatial_ref_dem.name)
+    else:
+        arcpy.AddMessage("The unit of the DEM projection is not in meter. Please re-project the DEM to a projected coordinate system for the analysis!")
+        exit()   
+
+    if spatial_flowline.linearUnitName == "Meter":
+        arcpy.AddMessage("The flowline projection is: " + spatial_flowline.name)
+    else:
+        arcpy.AddMessage("The unit of the flowline projection is not in meter. Please re-project it to a projected coordinate system for the analysis!")
+        exit()   
+
+
+    #if "UTM" in spatial_outline.name:
+    if spatial_outline.linearUnitName == "Meter":
+        arcpy.AddMessage("The outline projection is: " + spatial_outline.name)
+    else:
+        arcpy.AddMessage("The unit of the outline projection is not in meter. Please re-project it to a projected coordinate system for the analysis!")
+        exit()   
+
+    #arcpy.AddMessage(str(spatial_ref_dem.PCSCode))
+    #arcpy.AddMessage(str(spatial_flowline.PCSCode))
+    #arcpy.AddMessage(str(spatial_outline.PCSCode))
+    if (spatial_ref_dem.PCSCode == spatial_outline.PCSCode) and (spatial_ref_dem.PCSCode == spatial_flowline.PCSCode):
+    
+        arcpy.AddMessage("DEM, flowline, and outlines all have the same projected coordinate system: " + spatial_ref_dem.name)
+    else:
+        arcpy.AddMessage("DEM ,flowline,or outlines have different map projections. Please re-project the datasets to the same projection!")
+        exit()   
+
 
     Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_slope, point_res_check, point_res, shear_stress_test, shear_stress_value, final_points,
                          interpolate_check, cellsize_interpolate_check, cellsize_interpolate_user_spec, raster_out)

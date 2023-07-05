@@ -1727,6 +1727,7 @@ def flowline_remove_bigturn(flowline, max_angle, cellsize):
     new_line = arcpy.CreateFeatureclass_management("in_memory", "new_line","POLYLINE", flowline,"","", spatialref)
     arcpy.AddField_management(new_line, "ORIG_FID", "LONG")
     exist_fields = [f.name for f in arcpy.ListFields(flowline)] #List of current field names in outline layer
+    arcpy.AddMessage(exist_fields)
     fields = exist_fields[2:] ##The first two fields are FID and Geometry
     
     linearray = arcpy.da.FeatureClassToNumPyArray("in_memory\\simply_line", fields)

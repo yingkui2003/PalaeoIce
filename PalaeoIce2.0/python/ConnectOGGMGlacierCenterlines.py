@@ -243,68 +243,6 @@ if __name__ == '__main__':
     
     
     Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines_prj, dem, searchDis, flow_line)
-    '''    
-    ##make sure the projection of the glacier outlines is the same with the UTM and the same with the DEM projection 
-    spatial_ref_outlines = arcpy.Describe(glacier_outlines).spatialReference
-    spatial_ref_dem = arcpy.Describe(dem).spatialReference
-
-    ##Stream network analysis
-    cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
-    cellsize_int = int(cellsize.getOutput(0))
-
-
-    FcID = arcpy.Describe(glacier_outlines).OIDFieldName
-
-    arr=arcpy.da.FeatureClassToNumPyArray(glacier_outlines, FcID)
-    FIds = np.array([item[0] for item in arr])
-
-    progress_counter = 1
-
-    glacier_outline = "in_memory\\glacier_outline" ##Single outline for each loop
-    #flow_line_name = "flowlinecp"
-    flow_line_cp = "in_memory\\flow_line_cp"
-    #flow_line_cp = arcpy.CreateFeatureclass_management(arcpy.env.scratchGDB, flow_line_name, "POLYLINE")  ##Maybe not necessary??, so the output is flow_line_final now
-
-    for i in range(len(FIds)):
-        arcpy.AddMessage("Generating centreline(s) for glacier "+str(progress_counter)+" of "+str(len(FIds)))
-        query = FcID +" = "+str(FIds[i])
-
-        arcpy.Select_analysis(glacier_outlines,glacier_outline,query)
-
-        ##extract by mask the DEM so that the analysis is only for the extracted DEM
-        #arcpy.Buffer_analysis(glacier_outline, "in_memory\\glacier_outline_buf", "100 Meter")
-        #clipped_dem = ExtractByMask(dem,"in_memory\\glacier_outline_buf")
-        clipped_dem = ExtractByMask(dem,glacier_outline)
-
-        centerline = Centerline_for_single_outline (glacier_outline, clipped_dem, StreamThreshold, TributaryThreshold)
-
-        if progress_counter == 1:
-            arcpy.CopyFeatures_management(centerline, flow_line_cp)
-        else:
-            arcpy.Append_management(centerline, flow_line_cp, "NO_TEST")
-
-        progress_counter += 1
-
-    ##Integrate the flowline to make sure lines are connected if there are multiple flowlines
-    if progress_counter > 2:
-        try:
-            arcpy.Integrate_management(flow_line_cp, 10)
-        except:
-            pass
-        
-
-    Check_If_Flip_Line_Direction (flow_line_cp, dem)
-
-    #arcpy.CopyFeatures_management(flow_line_cp, flow_line)
-    
-    ##Smooth the line
-    lineSmooth(flow_line_cp, "in_memory\\final_flow_line", "Max_Max", cellsize_int*10)
-
-    arcpy.AddMessage ("Merge and Add Glacier ID...")
-
-    #arcpy.CopyFeatures_management("in_memory\\final_flow_line", flow_line)    
-    Merge_and_Add_GlacierID_by_Topology ("in_memory\\final_flow_line", "Max_Max", "GlacierID", "MergeID", flow_line)
-    '''    
         
     ##Delete intermidiate data
     arcpy.Delete_management("in_memory") ### Empty the in_memory
