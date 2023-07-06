@@ -140,9 +140,12 @@ Li Y., 2023. PalaeoIce: an automated method to reconstruct palaeoglacier using g
 # Most recent updates
 01/10/2023: Fixed some bugs in the program.
 
+
 06/26/2023: PalaeoIce 2.0 is available. The previous toolbox was saved as PalaeoIce 1.0 on Github for the history backup purpose. This updated toolbox is only available for ArcGIS Pro 2.8 or newer.
-07/06/2023: Removed the requirements of the UTM projection for some tools, so that the toolbox can be used for any projected coordinate systems
-            Fixed the errors of Volta centerline and Connect OGGM centerlines when using float DEM and when the resolution of DEM is a float number.
+
+
+07/06/2023: Removed the requirements of the UTM projection for some tools, so that the toolbox can be used for any projected coordinate systems;
+            Fixed the errors of Volta centerline and Connect OGGM centerlines when using float DEM and when the resolution of DEM is a float number;
             Fixed the errors when the path and filename of the ArcGIS Pro project include empty space(s)
 
 # Contact info
