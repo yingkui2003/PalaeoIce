@@ -87,7 +87,7 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, dem, search_dis,
         arcpy.FeatureVerticesToPoints_management(sel_flowlines, flowlineStartNodes, "START")
         ExtractValuesToPoints(flowlineStartNodes, dem, flowlineStartNodes_with_ele)
         arcpy.SpatialJoin_analysis(sel_flowlines, flowlineStartNodes_with_ele, flowlines_with_start_ele, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "0.1 Meter", "#")
-        arcpy.CopyFeatures_management(flowlines_with_start_ele, "d:\\temp\\flowlines_with_start_ele.shp")
+        #arcpy.CopyFeatures_management(flowlines_with_start_ele, "d:\\temp\\flowlines_with_start_ele.shp")
         
         flowlineArr = arcpy.da.FeatureClassToNumPyArray(flowlines_with_start_ele, 'RASTERVALU')
         heights = np.array([item[0] for item in flowlineArr])
