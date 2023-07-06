@@ -53,7 +53,7 @@ def new_branch_bak(input_flowline, dem, branch_outline, input_outline, cellsize_
     with arcpy.da.SearchCursor(branch_points_alt, [FcID, "RASTERVALU"]) as cursor:
         for row in cursor:
             if row[0] > 1:
-                tempRs = arcpy.env.scratchFolder + "\\r" + str(row[0])
+                tempRs = arcpy.env.scratchFolder + "\\r" + str(row[0]) + ".tif" ##to aviod the folder has space issue
                 #tempRs = flow_line_path + "\\r" + str(row[0])
                 #if arcpy.Exists (tempRs):
                 #    arcpy.Delete_management(tempRs)

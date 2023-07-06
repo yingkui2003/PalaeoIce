@@ -1150,8 +1150,8 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
     allicepolys = "in_memory\\allicepolys"
     All_CS_ice_points = "in_memory\\All_CS_ice_points"
     singeflowpnts = "in_memory\\singeflowpnts"
-    icesurs = arcpy.env.scratchFolder + "\\r" + "icesurs" ##the inmemory does not work for raster
-    oldsurface = arcpy.env.scratchFolder + "\\r" + "oldsurface" ##the inmemory does not work for raster
+    icesurs = arcpy.env.scratchFolder + "\\r" + "icesurs.tif" ##the inmemory does not work for raster
+    oldsurface = arcpy.env.scratchFolder + "\\r" + "oldsurface.tif" ##the inmemory does not work for raster
 
     exist_fields = [f.name for f in arcpy.ListFields(inputflowline)] #List of current field names in outline layer
     if GlacierID in exist_fields:
@@ -1446,8 +1446,8 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
             mean_f_factor = AdjustFfactor_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepoly) 
 
         ##Need to adjust the shear stress based on the average F factors 04/22/2023
-        ss0 = mean_f_factor * ss0
         arcpy.AddMessage("ss0: " + str(ss0))
+        ss0 = mean_f_factor * ss0
         
         arcpy.CalculateField_management(selflowline3dpoints,"SSTRESS", ss0) ##update shear stress
         ##Recalculate the ice thickness for the flowpoints based on adjusted F and ss parameters

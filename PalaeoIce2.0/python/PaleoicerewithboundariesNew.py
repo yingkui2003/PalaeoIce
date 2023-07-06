@@ -813,7 +813,7 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
     singeflowpnts = "in_memory\\singeflowpnts"
     icewatersheds = "in_memory\\icewatersheds"
     #All_CS_ice_points = "in_memory\\All_CS_ice_points"
-    icesurs = arcpy.env.scratchFolder + "\\r" + "icesurs" ##the inmemory does not work for raster
+    icesurs = arcpy.env.scratchFolder + "\\r" + "icesurs.tif" ##the inmemory does not work for raster
 
 
     arcpy.env.extent = BedDEM

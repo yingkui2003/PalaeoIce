@@ -352,36 +352,40 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
             del row4, cursor4
 
             #Loop #3 to create a dictionary for distance and DEM elavation (RasterVALU extracted from DEM, should be ice surface elevation)
-            error_dict = {}    
-            search_dist = search_dist_va_round              
-            dict = {}
+            #error_dict = {}    
+            search_dist = search_dist_va_round 
+            #arcpy.AddMessage(str(search_dist))            
+            ele_dict = {}
             with arcpy.da.SearchCursor(points_glac,fields) as cursor5:
                 for row5 in cursor5:
-                    index = row5[2]
-                    value = row5[3]
-                    dict[index] = value       
+                    index = int(row5[2])
+                    value = int(row5[3])
+                    ele_dict[index] = value       
             del row5, cursor5
             
             if min_dist > 0: ##if the minimum distance is not zero, add the zero and min-elevation into the dict
                 index = 0
-                value = min_ele
-                dict[index] = value 
+                value = int(min_ele)
+                ele_dict[index] = value 
                 
             #Loop #4 to derive all parameters
+            
+            #arcpy.AddMessage(ele_dict)
             
             with arcpy.da.UpdateCursor(points_glac,fields) as cursor6:
                 for row6 in cursor6:
                     #row[16] = order_dict[row[17]]  #?????? error
                     row6[16] = flowline_id  #Revised by Yingkui Li 11052019 ##May need to check if it is correct order_dict is a local variable in shearstress, how to pass the value out to here????
                     row6[12] = outline_id
-                    start_distance = row6[2] - (search_dist)
-                    end_distance = row6[2] + (search_dist)
+                    start_distance = int(row6[2]) - (search_dist)
+                    end_distance = int(row6[2]) + (search_dist)
                     if start_distance >= 0 and end_distance <= row6[4]:
                         diff_distance = end_distance - start_distance
-                        start = start_distance
-                        start_ele = dict[start]
-                        end = end_distance                                
-                        end_ele = dict[end]
+                        start = int(start_distance)
+                        start_ele = ele_dict[start]
+                        end = int(end_distance)
+                        #arcpy.AddMessage(str(end))
+                        end_ele = ele_dict[end]
                         diff_ele = end_ele - start_ele
                         if diff_distance != 0:
                             m = diff_ele/diff_distance
@@ -544,12 +548,13 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
 ###Start the main program
 if __name__ == '__main__':
 
+    arcpy.Delete_management("in_memory")
+
     flowline = arcpy.GetParameterAsText(0)
     dem = arcpy.GetParameterAsText(1)
 
     cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
     cellsize_float = float(cellsize.getOutput(0)) # use float cell size
-
 
     outline = arcpy.GetParameterAsText(2)
     ice_density = int(arcpy.GetParameterAsText(3))
@@ -558,7 +563,7 @@ if __name__ == '__main__':
     point_res_check = arcpy.GetParameterAsText(6)
 
     if point_res_check == "true":
-        point_res = cellsize_float ##cellsize_int  (old value)   
+        point_res = int(cellsize_float+0.5) ##cellsize_int  (old value)   
     else:
         point_res = float(arcpy.GetParameterAsText(7))
 
@@ -577,7 +582,6 @@ if __name__ == '__main__':
     cellsize_interpolate_user_spec = ""
 
 
-    arcpy.Delete_management("in_memory")
 
     ##make sure the projection of the glacier outlines is the same with the UTM and the same with the DEM projection 
     spatial_flowline = arcpy.Describe(flowline).spatialReference
@@ -633,8 +637,21 @@ if __name__ == '__main__':
         arcpy.AddMessage("DEM ,flowline,or outlines have different map projections. Please re-project the datasets to the same projection!")
         exit()   
 
+    ##Need to resample the DEM to a DEM with integer resolution
+    indem = "in_memory\\indem"
+    if cellsize_float > int (cellsize_float):
+        arcpy.AddMessage("Resample DEM to an integer resolution DEM")
+        new_cell_size = int(cellsize_float+0.5)
+        #arcpy.AddMessage(str(new_cell_size))
+        arcpy.Resample_management(dem, indem, str(new_cell_size), "NEAREST")
+        #arcpy.CopyRaster_management(indem, "d:\\temp\\indem.tif")
+    else:
+        arcpy.CopyRaster_management(dem, indem)
 
-    Ice_Thickness_Volta (flowline, dem, outline, ice_density, slope_limit, min_slope, point_res_check, point_res, shear_stress_test, shear_stress_value, final_points,
+    
+    int_dem = Int(indem)
+
+    Ice_Thickness_Volta (flowline, int_dem, outline, ice_density, slope_limit, min_slope, point_res_check, point_res, shear_stress_test, shear_stress_value, final_points,
                          interpolate_check, cellsize_interpolate_check, cellsize_interpolate_user_spec, raster_out)
 
     arcpy.Delete_management("in_memory")

@@ -2300,7 +2300,7 @@ def new_branch(input_flowline, dem, branch_outline, input_outline, TributaryRati
     pntcount = int(pntcount_result.getOutput(0))
     #arcpy.AddMessage("point count is:" + str(pntcount))
     for i in range(1, pntcount):
-        tempRs = arcpy.env.scratchFolder + "\\r" + str(i) ###Create a temp raster file. In-memory doesnot work for raster???
+        tempRs = arcpy.env.scratchFolder + "\\r" + str(i) +".tif" ###Create a temp raster file. In-memory doesnot work for raster???
         if new_branch_count == 0:
             query = FcID+" = "+str(i+1)
             arcpy.Select_analysis(branch_points_alt, "in_memory\\select_branch_points", query) ###Just do a simply select analysis
