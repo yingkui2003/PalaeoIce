@@ -302,7 +302,7 @@ def Combine_Flowlines_with_Centerlines (flowlineinput, centerlineinput, outlinep
         arcpy.DeleteField_management(dissolvedlines2,field) #Make sure to delete GlacierID. It will be added later in the paleoice reconstruction
 
     ##Remove big turns along the flowlines before smoothing it
-    arcpy.CopyFeatures_management(dissolvedlines2, "c:\\test\\dissolvedlines2.shp")
+    #arcpy.CopyFeatures_management(dissolvedlines2, "c:\\test\\dissolvedlines2.shp")
     
     newline = remove_bigturn(dissolvedlines2, 120, cellsize_float)
     arcpy.cartography.SmoothLine(newline, "in_memory\\smmothline", "PAEK", 200)
