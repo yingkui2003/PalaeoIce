@@ -581,7 +581,7 @@ def shear_stress_calculation_bak2(mainflowline, outline, icedem, min_ss, max_ss)
         arcpy.RasterToPolygon_conversion(outCon, elev_bin_polygon, "SIMPLIFY", "VALUE")
         polyArr = arcpy.da.FeatureClassToNumPyArray(elev_bin_polygon, ('SHAPE@AREA'))
         areas = np.array([item[0] for item in polyArr])
-        arcpy.AddMessage(areas)
+        #arcpy.AddMessage(areas)
         if len(areas) > 0:
             area = max(areas)
             #arcpy.AddMessage("Area is:" + str(area))
@@ -1727,7 +1727,7 @@ def flowline_remove_bigturn(flowline, max_angle, cellsize):
     new_line = arcpy.CreateFeatureclass_management("in_memory", "new_line","POLYLINE", flowline,"","", spatialref)
     arcpy.AddField_management(new_line, "ORIG_FID", "LONG")
     exist_fields = [f.name for f in arcpy.ListFields(flowline)] #List of current field names in outline layer
-    arcpy.AddMessage(exist_fields)
+    #arcpy.AddMessage(exist_fields)
     fields = exist_fields[2:] ##The first two fields are FID and Geometry
     
     linearray = arcpy.da.FeatureClassToNumPyArray("in_memory\\simply_line", fields)
