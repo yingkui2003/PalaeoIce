@@ -78,7 +78,7 @@ arcpy.env.cellSize = inDEM
 lake_outline = "in_memory\\lake_outline"
 outline_lines = "in_memory\\outline_lines"
 sel_outline_line = "in_memory\\sel_outline_line"
-lakeTckness = arcpy.env.scratchFolder + "\\r" + "lakeTckness"
+lakeTckness = arcpy.env.scratchFolder + "\\r" + "lakeTckness" + ".tif" ##use tif format to avoid the space in path name issue
 
 b_lake_contours = True
 if len(in_lake_contours) == 0:
