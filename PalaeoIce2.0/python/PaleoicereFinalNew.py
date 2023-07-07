@@ -641,7 +641,7 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     ##4/21/2023: Can also used the extract value to  with the interpretation option
     arcpy.FeatureVerticesToPoints_management(primary_flowline, "in_memory\\startendpnt", "BOTH_ENDS")
     ExtractValuesToPoints("in_memory\\startendpnt", icedem, "in_memory\\startendpnt_ele", "INTERPOLATE", "VALUE_ONLY")
-    arcpy.CopyRaster_management(icedem, "c:\\temp\\icedem.tif")
+    #arcpy.CopyRaster_management(icedem, "c:\\temp\\icedem.tif")
     elev = []
     with arcpy.da.SearchCursor("in_memory\\startendpnt_ele",["RASTERVALU"]) as cursor:
         for row in cursor:
