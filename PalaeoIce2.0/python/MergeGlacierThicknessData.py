@@ -83,7 +83,7 @@ for rgi_id in RGIIDs:
             arcpy.CopyRaster_management (inRaster, outRaster)
             b_copied = 1
         else:
-            arcpy.Mosaic_management(inRaster, outRaster, "MEAN","","", "", "", "", "")
+            arcpy.Mosaic_management(inRaster, outRaster, "MAXIMUM","","", "", "", "", "") ##use maximum
     except:
         arcpy.AddMessage("The current glacier outline does not have the corresponding thickness rater")
         pass
