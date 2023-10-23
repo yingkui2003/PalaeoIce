@@ -2359,15 +2359,15 @@ def new_branch(input_flowline, dem, branch_outline, input_outline, TributaryRati
                                     #arcpy.AddMessage("Delete spurous polygon!")
                                     cursor.deleteRow()  
                         del cursor, row
-                    #try:
-                    new_branch_outline = arcpy.Clip_analysis(new_branch_outline_unclipped, input_outline, branch_outline)
-                    #    #arcpy.AddMessage("an process correctly")
-                    #    new_branch_count = 1
-                    #except:
-                    #    new_branch_outline = branch_outline
-                    #    arcpy.AddMessage("an error happens")
-                    #    new_branch_count = 0
-                    new_branch_count = 1
+                    try:
+                        new_branch_outline = arcpy.Clip_analysis(new_branch_outline_unclipped, input_outline, branch_outline)
+                        #arcpy.AddMessage("an process correctly")
+                        new_branch_count = 1
+                    except:
+                        new_branch_outline = branch_outline
+                        arcpy.AddMessage("The output Features are same as overlay Clip Features! Pass to the next step!")
+                        new_branch_count = 0
+                    #new_branch_count = 1
                     break
 
     if new_branch_count > 0:
