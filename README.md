@@ -147,6 +147,7 @@ Li Y., 2023. PalaeoIce: an automated method to reconstruct palaeoglacier using g
 07/06/2023: Removed the requirements of the UTM projection for some tools, so that the toolbox can be used for any projected coordinate systems;
             Fixed the errors of Volta centerline and Connect OGGM centerlines when using float DEM and when the resolution of DEM is a float number;
             Fixed the errors when the path and filename of the ArcGIS Pro project include empty space(s)
+10/23/2023: Fixed an error in volta centerline (the output Features are same as overlay Clip Features).
 
 # Contact info
 Yingkui Li
