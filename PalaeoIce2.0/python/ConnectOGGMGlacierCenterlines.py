@@ -18,7 +18,21 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, indem, search_di
     ##Step 0: convert the DEM to intergal DEM
     dem = Int(indem)
     #Step 1: Add a field to Glacier outline
-    outlines = "in_memory\\outlines"
+    outlines = arcpy.env.scratchGDB + "\\outlines"
+    sel_centerlines = arcpy.env.scratchGDB + "\\sel_centerlines"
+    sel_flowlines = arcpy.env.scratchGDB + "\\sel_flowlines"
+    longest_flowline = arcpy.env.scratchGDB + "\\longest_flowline"
+    longest_flowline_points = arcpy.env.scratchGDB + "\\longest_flowline_points"
+    otherline_start_nodes = arcpy.env.scratchGDB + "\\otherline_start_nodes"
+    sel_outline = arcpy.env.scratchGDB + "\\sel_outline"
+    flowlines_without_longestflowlines = arcpy.env.scratchGDB + "\\flowlines_without_longestflowlines"
+    connectedflowlines = arcpy.env.scratchGDB + "\\connectedflowlines"
+    dissolve_connectedflowlines = arcpy.env.scratchGDB + "\\dissolve_connectedflowlines"
+    centerlines_in_outline = arcpy.env.scratchGDB + "\\centerlines_in_outline"
+
+    arcpy.AddMessage("Make a copy of glaicier outlines...")
+    print("Make a copy of glaicier outlines...")
+
     arcpy.CopyFeatures_management(glacier_outlines, outlines)
     fieldlist = []
     ListFields=arcpy.ListFields(outlines)
@@ -34,103 +48,119 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, indem, search_di
 
     arcpy.CalculateField_management(outlines,GlaicerID, str("!"+str(arcpy.Describe(outlines).OIDFieldName)+"!"),"PYTHON_9.3")
 
-    ##Step 1.1: Add the elevation of the lowest point for each flowline into flowlines
-    Check_If_Flip_Line_Direction(OGGMcenterlines, dem)
-    flowlineStartNodes = "in_memory\\flowlineStartNodes"
-    #arcpy.FeatureVerticesToPoints_management(OGGMcenterlines, flowlineStartNodes, "START")
-    ##Extract the elevation for each point
-    flowlineStartNodes_with_ele = "in_memory\\flowlineStartNodes_with_ele"
-    #ExtractValuesToPoints(flowlineStartNodes, dem, flowlineStartNodes_with_ele)
-    flowlines_with_start_ele = "in_memory\\flowlines_with_start_ele"
-    #arcpy.SpatialJoin_analysis(OGGMcenterlines, flowlineStartNodes_with_ele, flowlines_with_start_ele, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "0.1 Meter", "#")
-
-    ##Step 2: Spatial join the glacier ID to flowlines
-    flowlineswithGlacerID = "in_memory\\flowlineswithGlacerID"
-    #arcpy.SpatialJoin_analysis(flowlines_with_start_ele, outlines, flowlineswithGlacerID, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "HAVE_THEIR_CENTER_IN", "#", "#")
-    ##Step 3 loop for the flowline with the same GlacierID
-    #lineArray = arcpy.da.FeatureClassToNumPyArray(flowlineswithGlacerID, GlaicerID)
-    #GIDlist = np.array([item[0] for item in lineArray])
-    #uniqueGIDArr = np.unique(GIDlist)    
-    #arcpy.AddMessage(uniqueGIDArr)
-    sel_flowlines = "in_memory\\sel_flowlines"
-    lowest_flowline = "in_memory\\lowest_flowline"
-    lowest_flowline_points = "in_memory\\lowest_flowline_points"
-    otherline_start_nodes = "in_memory\\otherline_start_nodes"
-    sel_outline = "in_memory\\sel_outline"
-
-    new_flowlines = arcpy.CreateFeatureclass_management("in_memory", "new_flowlines","POLYLINE","","","",OGGMcenterlines)
+    new_flowlines = arcpy.CreateFeatureclass_management(arcpy.env.scratchGDB, "new_flowlines","POLYLINE","","","",OGGMcenterlines)
 
     FcID = arcpy.Describe(outlines).OIDFieldName
     polygonArray = arcpy.da.FeatureClassToNumPyArray(outlines, FcID)
     GIDlist = np.array([item[0] for item in polygonArray])
     
     #uniqueGIDArr = np.unique(GIDlist)    
+    arcpy.AddMessage("Check flowline direction...")
+    print("Check flowline direction...")
 
+    Check_If_Flip_Line_Direction(OGGMcenterlines, dem)
+    
     for i in range(len(GIDlist)):
         #query = GlaicerID +" = "+str(GIDlist[i])
         query = FcID +" = "+str(GIDlist[i])
 
         arcpy.AddMessage("Generating centreline(s) for glacier "+str(GIDlist[i])+" of "+str(len(GIDlist)))
-        arcpy.Select_analysis(outlines,sel_outline,query)
-        arcpy.Clip_analysis(OGGMcenterlines, sel_outline, sel_flowlines, "0.001 Meter")
+        print("Generating centreline(s) for glacier "+str(GIDlist[i])+" of "+str(len(GIDlist)))
 
+        arcpy.Select_analysis(outlines,sel_outline,query)
+
+        ##First use spatial join to select the centerlines within the sel_outline
+        arcpy.SpatialJoin_analysis(OGGMcenterlines, sel_outline, centerlines_in_outline, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "HAVE_THEIR_CENTER_IN", None, "#")
+        ##Then, clip the centerlines just within the outline       
+        arcpy.Clip_analysis(centerlines_in_outline, sel_outline, sel_centerlines, "0.001 Meter")
+
+        ##Need to make sure that there is centerlines
+
+        LineID = arcpy.Describe(sel_centerlines).OIDFieldName
+        lineArray = arcpy.da.FeatureClassToNumPyArray(sel_centerlines, 'SHAPE@LENGTH')
+        lengthArr = np.array([item[0] for item in lineArray])
+        if (len(lengthArr) == 0 or np.max(lengthArr) < 50):
+            arcpy.AddMessage("There is no centerline for this glacier, move to the next one")
+            continue ##move to the next loop
+        
         ##Need to delete the small lines that cross the outline boundary
-        with arcpy.da.UpdateCursor(sel_flowlines, ['SHAPE@LENGTH']) as cursor:
+        with arcpy.da.UpdateCursor(sel_centerlines, ['SHAPE@LENGTH']) as cursor:
             for row in cursor:
                 if row[0] < 50: ##if the line is less than 50 m, delete
                     arcpy.AddMessage("Delete small lines")
                     cursor.deleteRow()
         del row, cursor
          
+        arcpy.cartography.SmoothLine(sel_centerlines, sel_flowlines, "PAEK", 200)
 
         #arcpy.Select_analysis(flowlineswithGlacerID,sel_flowlines_with_GlacerID,query)
         #arcpy.Select_analysis(outlines,sel_outline_GlacerID,query)
         
         ## find the lowest flowline
-        arcpy.FeatureVerticesToPoints_management(sel_flowlines, flowlineStartNodes, "START")
-        ExtractValuesToPoints(flowlineStartNodes, dem, flowlineStartNodes_with_ele)
-        arcpy.SpatialJoin_analysis(sel_flowlines, flowlineStartNodes_with_ele, flowlines_with_start_ele, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "0.1 Meter", "#")
+        #arcpy.FeatureVerticesToPoints_management(sel_flowlines, flowlineStartNodes, "START")
+        #ExtractValuesToPoints(flowlineStartNodes, dem, flowlineStartNodes_with_ele)
+        #arcpy.SpatialJoin_analysis(sel_flowlines, flowlineStartNodes_with_ele, flowlines_with_start_ele, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "0.1 Meter", "#")
         #arcpy.CopyFeatures_management(flowlines_with_start_ele, "d:\\temp\\flowlines_with_start_ele.shp")
+        arcpy.AddField_management(sel_flowlines, "LineLength", "LONG", 20)
+        with arcpy.da.UpdateCursor(sel_flowlines, ['SHAPE@LENGTH', 'LineLength']) as cursor:
+            for row in cursor:
+                row[1] = int(float(row[0]))
+                cursor.updateRow(row)
+        del row, cursor
+
+        #arcpy.CopyFeatures_management(sel_flowlines, "d:\\temp\\flowlines_with_start_ele.shp")
         
-        flowlineArr = arcpy.da.FeatureClassToNumPyArray(flowlines_with_start_ele, 'RASTERVALU')
-        heights = np.array([item[0] for item in flowlineArr])
-        #arcpy.AddMessage(heights)
+        
+        flowlineArr = arcpy.da.FeatureClassToNumPyArray(sel_flowlines, 'LineLength')  ###??? should just find the longest one as the lowest one in the fitst step!!!!
+        #heights = np.array([item[0] for item in flowlineArr])
+        lengths = np.array([item[0] for item in flowlineArr])
+        #arcpy.AddMessage(lengths)
         ##If only one height value (one flowline), do nothing and return
-        if len(heights) < 2:
+        if len(lengths) < 2:
             arcpy.AddMessage("Only one centerline in the glacier outlines")
+            print("Only one centerline in the glacier outlines")
             ##Clip the flowlines using the outline
-            #arcpy.Clip_analysis(sel_flowlines_with_GlacerID, sel_outline_GlacerID, "in_memory\\clipped_sel_flowline", "0.001 Meter")
+            #arcpy.Clip_analysis(sel_flowlines_with_GlacerID, sel_outline_GlacerID, arcpy.env.scratchGDB + "\\clipped_sel_flowline", "0.001 Meter")
             arcpy.Append_management(sel_flowlines, new_flowlines, "NO_TEST")
         else:
-            minheight = min(heights)
+            #minheight = min(heights)
+            maxlength = max(lengths)
             #arcpy.AddMessage(str(minheight))
             ##Copy the line with minheight as a seperated flowline
-            query = 'RASTERVALU' +" = "+str(minheight)
-            arcpy.Select_analysis(flowlines_with_start_ele,lowest_flowline,query)
+            #query = 'RASTERVALU' +" = "+str(minheight)
+            query = 'LineLength' +" = "+str(maxlength)
+            arcpy.Select_analysis(sel_flowlines,longest_flowline,query)
 
             ##remove the lowest flowline
-            #with arcpy.da.UpdateCursor(flowlines_with_start_ele, ['RASTERVALU']) as cursor:
+            #with arcpy.da.UpdateCursor(sel_flowlines, ['LineLength']) as cursor:
             #    for row in cursor:
-            #        if row[0] == minheight:
+            #        if row[0] == maxlength:
             #            cursor.deleteRow()
             #del row, cursor
             
             ##Do the connection with the lowest flowline
-            arcpy.FeatureVerticesToPoints_management(lowest_flowline, lowest_flowline_points, "ALL") ## check if the centerline can be extended to the nearest vertices
+            #arcpy.FeatureVerticesToPoints_management(longest_flowline, longest_flowline_points, "ALL") ## check if the centerline can be extended to the nearest vertices
+            #arcpy.CopyFeatures_management(longest_flowline_points, "d:\\temp\\longest_flowline_points.shp")
 
             #arcpy.FeatureVerticesToPoints_management(flowlines_with_start_ele, otherline_start_nodes, "START") ## check if the centerline can be extended to the nearest vertices
-            arcpy.FeatureVerticesToPoints_management(flowlines_with_start_ele, otherline_start_nodes, "BOTH_ENDS") ## check if the centerline can be extended to the nearest vertices
+
+            #arcpy.FeatureVerticesToPoints_management(sel_flowlines, otherline_start_nodes, "BOTH_ENDS") ## check if the centerline can be extended to the nearest vertices
+            arcpy.FeatureVerticesToPoints_management(sel_flowlines, otherline_start_nodes, "START") ## check if the centerline can be extended to the nearest vertices
 
             bLoop = True
             numLoop = 1
             while (bLoop):
                 search_radius = str(numLoop* search_dis) + " Meters"
                 #arcpy.AddMessage(search_radius)
-                if numLoop* search_dis < 500: ##if larger than 100 m, try using the end points
-                    arcpy.Near_analysis(otherline_start_nodes, lowest_flowline_points, search_radius, "LOCATION", "")
-                else: ##if larger than 100 m, try using the end points
-                    arcpy.FeatureVerticesToPoints_management(flowlines_with_start_ele, otherline_start_nodes, "End")
-                    arcpy.Near_analysis(otherline_start_nodes, lowest_flowline_points, search_radius, "LOCATION", "")
+                if numLoop* search_dis < 300: ##if larger than 500 m, try using the end points
+                    arcpy.Near_analysis(otherline_start_nodes, longest_flowline, search_radius, "LOCATION", "")
+                else: ##if larger than 500 m, try using the end points
+                    arcpy.AddMessage("use the other end...")
+                    print("use the other end...")
+                    arcpy.FeatureVerticesToPoints_management(sel_flowlines, otherline_start_nodes, "END")
+                    arcpy.Near_analysis(otherline_start_nodes, longest_flowline, search_radius, "LOCATION", "")
+
+                #arcpy.CopyFeatures_management(otherline_start_nodes, "d:\\temp\\otherline_start_nodes.shp")
                     
                 leftover = 0
                 x1 = []
@@ -154,48 +184,76 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, indem, search_di
                 del cursor, row
                 number_connected = 0
                 if len(NearID) > 0:
-                    arcpy.AddMessage("Create connection lines")
-                    connectionline = arcpy.CreateFeatureclass_management("in_memory", "connectionline","POLYLINE","","","",dem)
+                    arcpy.AddMessage("Create connection lines ... ") 
+                    print("Create connection lines ... ") 
+                    connectionline = arcpy.CreateFeatureclass_management(arcpy.env.scratchGDB, "connectionline","POLYLINE","","","",dem)
                     new_line_cursor = arcpy.da.InsertCursor(connectionline, ('SHAPE@'))
+                    number_connected = 0
                     for i in range(len(NearID)):
                         #arcpy.AddMessage("Add line: " + str(i))
-                        array = arcpy.Array([arcpy.Point(x2[i],y2[i]),arcpy.Point(x1[i], y1[i])])
-                        polyline = arcpy.Polyline(array)
-                        new_line_cursor.insertRow([polyline])
+                        dist = math.sqrt((math.pow((x2[i] -x1[i]),2) + math.pow((y2[i] -y1[i]),2)))
+                        #arcpy.AddMessage("Dist: " + str(dist))
+                        if dist > 1: ##if distance is larger than 1 m to prevent zero connection line case
+                            array = arcpy.Array([arcpy.Point(x2[i],y2[i]),arcpy.Point(x1[i], y1[i])])
+                            polyline = arcpy.Polyline(array)
+
+                            #arcpy.AddMessage("Add one connection line...")
+                            number_connected += 1
+                            new_line_cursor.insertRow([polyline])
                     del new_line_cursor
-                    number_connected = len(NearID)
+                    #number_connected = len(NearID)
 
-                    arcpy.Erase_analysis(flowlines_with_start_ele, lowest_flowline, "in_memory\\flowlines_without_lowestflowlines")
+                    arcpy.Erase_analysis(sel_flowlines, longest_flowline, flowlines_without_longestflowlines)
 
-                    arcpy.SpatialJoin_analysis("in_memory\\flowlines_without_lowestflowlines", connectionline, "in_memory\\connectedflowlines", "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "1 Meters", "#")
+                    arcpy.SpatialJoin_analysis(flowlines_without_longestflowlines, connectionline, connectedflowlines, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "1 Meters", "#")
                     #arcpy.CopyFeatures_management(flowlines_with_start_ele, "d:\\temp\\flowlines_with_start_ele.shp")
 
-                    arcpy.Append_management(connectionline, "in_memory\\connectedflowlines", "NO_TEST")
+                    arcpy.Append_management(connectionline, connectedflowlines, "NO_TEST")
+                    #arcpy.CopyFeatures_management(connectedflowlines, "d:\\temp\\connectedflowlines.shp")
 
-                    arcpy.Dissolve_management("in_memory\\connectedflowlines", "in_memory\\dissolve_connectedflowlines", "","", "SINGLE_PART")
-                    #arcpy.CopyFeatures_management("in_memory\\dissolve_connectedflowlines", "d:\\temp\\dissolve_connectedflowlines.shp")
-                    #arcpy.CopyFeatures_management(lowest_flowline, "d:\\temp\\lowest_flowline.shp")
+                    arcpy.Dissolve_management(connectedflowlines, dissolve_connectedflowlines, "","", "SINGLE_PART")
+                    #arcpy.CopyFeatures_management(arcpy.env.scratchGDB + "\\dissolve_connectedflowlines", "d:\\temp\\dissolve_connectedflowlines.shp")
+                    #arcpy.CopyFeatures_management(longest_flowline, "d:\\temp\\longest_flowline.shp")
 
                     #arcpy.AddMessage("Append")    
-                    arcpy.Append_management("in_memory\\dissolve_connectedflowlines", lowest_flowline, "NO_TEST")
+                    arcpy.Append_management(dissolve_connectedflowlines, longest_flowline, "NO_TEST")
+
+                    arcpy.Delete_management(connectionline)
 
                 if leftover > 0:
                     if number_connected < 1: ##Need to increase the search distance
                         numLoop += 1
                         #arcpy.AddMessage("numLoop is " + str(numLoop))
+                        #if numLoop > 3:
+                        #    bLoop = False
                     else: ##Need to update the points for lowese_flowlines
-                        arcpy.FeatureVerticesToPoints_management(lowest_flowline, lowest_flowline_points, "ALL") ## check if the centerline can be extended to the nearest vertices
+                        #arcpy.FeatureVerticesToPoints_management(longest_flowline, longest_flowline_points, "ALL") ## check if the centerline can be extended to the nearest vertices
+                        pass
                         #arcpy.FeatureVerticesToPoints_management(sel_flowlines_with_GlacerID, otherline_start_nodes, "START") ## check if the centerline can be extended to the nearest vertices
                 else:
                     bLoop = False ## stop the loop
             
             ##Clip the lowest flowline using the outline
-            #arcpy.Clip_analysis(lowest_flowline, sel_outline_GlacerID, "in_memory\\clipped_sel_flowline", "0.001 Meter")
-            arcpy.Append_management(lowest_flowline, new_flowlines, "NO_TEST")
+            #arcpy.Clip_analysis(longest_flowline, sel_outline_GlacerID, arcpy.env.scratchGDB + "\\clipped_sel_flowline", "0.001 Meter")
+            arcpy.Append_management(longest_flowline, new_flowlines, "NO_TEST")
 
-    #arcpy.cartography.SmoothLine(new_flowlines, outflowlines, "PAEK", 200)
 
     arcpy.CopyFeatures_management(new_flowlines, outflowlines)
+
+    ##Delete intermidiate files
+    arcpy.Delete_management(centerlines_in_outline)
+    arcpy.Delete_management(outlines)
+    arcpy.Delete_management(sel_flowlines)
+    arcpy.Delete_management(sel_centerlines)
+    arcpy.Delete_management(longest_flowline)
+    arcpy.Delete_management(longest_flowline_points)
+    arcpy.Delete_management(otherline_start_nodes)
+    arcpy.Delete_management(sel_outline)
+    arcpy.Delete_management(flowlines_without_longestflowlines)
+    arcpy.Delete_management(new_flowlines)
+    arcpy.Delete_management(connectedflowlines)
+    arcpy.Delete_management(dissolve_connectedflowlines)
+
     return
 
 
@@ -210,21 +268,16 @@ if __name__ == '__main__':
     searchDis = float(arcpy.GetParameter(3))
     flow_line = arcpy.GetParameterAsText(4)
 
-    arcpy.Delete_management("in_memory")
+    OGGMcenterlines_clip = arcpy.env.scratchGDB + "\\OGGMcenterlines_clip"
 
-    OGGMcenterlines_clip = "in_memory\\OGGMcenterlines_clip"
-    #arcpy.CopyFeatures_management(OGGMcenterlines, OGGMcenterlines_cp)
-    outflowlines = "in_memory\\outflowlines"
-
-    ##Use the convex hull of glacier outlines to clip OGGMcenterlines
-    #arcpy.MinimumBoundingGeometry_management(glacier_outlines, "in_memory\\mbg", "CONVEX_HULL", "NONE", "","MBG_FIELDS")
-    arcpy.Clip_analysis(OGGMcenterlines, glacier_outlines, OGGMcenterlines_clip)
+    #arcpy.Clip_analysis(OGGMcenterlines, glacier_outlines, OGGMcenterlines_clip)
+    arcpy.SpatialJoin_analysis(OGGMcenterlines, glacier_outlines, OGGMcenterlines_clip, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "HAVE_THEIR_CENTER_IN", None, "#")
 
 
     spatial_ref_outlines = arcpy.Describe(glacier_outlines).spatialReference
     spatial_ref_centerlines = arcpy.Describe(OGGMcenterlines_clip).spatialReference
 
-    #OGGMcenterlines_prj = "in_memory\\OGGMcenterlines_prj"
+    #OGGMcenterlines_prj = arcpy.env.scratchGDB + "\\OGGMcenterlines_prj"
     OGGMcenterlines_prj = arcpy.env.scratchGDB + "\\OGGMcenterlines_prj"
     if spatial_ref_centerlines.name == spatial_ref_outlines.name:
         arcpy.AddMessage("Both outline and centerline projection are: " + spatial_ref_centerlines.name)
@@ -234,19 +287,8 @@ if __name__ == '__main__':
         arcpy.AddMessage("The glacier outline projection is: " + spatial_ref_outlines.name)
         arcpy.Project_management(OGGMcenterlines_clip, OGGMcenterlines_prj, glacier_outlines)
 
-    ##Remove the small lines generated by clipping
-    ##Need to delete the small lines that cross the outline boundary
-    #arcpy.CopyFeatures_management(OGGMcenterlines_prj, "d:\\temp\\OGGMcenterlines_prj.shp")
-    #with arcpy.da.UpdateCursor(OGGMcenterlines_prj, ['SHAPE@LENGTH']) as cursor:
-    #    for row in cursor:
-    #        if row[0] < 50: ##if the line is less than 50 m, delete
-    #            arcpy.AddMessage("Delete small lines")
-    #            cursor.deleteRow()
-    #del row, cursor
-
-    
-    
     Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines_prj, dem, searchDis, flow_line)
         
     ##Delete intermidiate data
-    arcpy.Delete_management("in_memory") ### Empty the in_memory
+    arcpy.Delete_management(OGGMcenterlines_clip) ### Empty the in_memory
+    arcpy.Delete_management(OGGMcenterlines_prj) ### Empty the in_memory

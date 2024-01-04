@@ -143,6 +143,66 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     #    shear_stress = min_ss
     
     return shear_stress
+'''
+#------------------------------------------------------------------------------------------------------------
+# This function check each line in the line feature and make sure the line is from low elevation to high
+# elevation (Glacier flowline needs from low to high elevation in order to reconstruct the paleo ice thickness).
+# It is revised from the codes by Pellitero et al.(2016) in GlaRe.
+#------------------------------------------------------------------------------------------------------------
+def Check_If_Flip_Line_Direction(line, dem):
+    
+    #cellsize = dem.meanCellWidth
+    #cellsize_int = int(cellsize)
+    cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
+    cellsize_int = int(float(cellsize.getOutput(0)))
+    #arcpy.AddMessage("cellsize_int: " + str(cellsize_int))
+
+    line3d = arcpy.env.scratchGDB + "\\line3d"
+    arcpy.AddField_management(line, "Flip", "Long", "", "", "", "", "", "", "")
+
+    arcpy.InterpolateShape_3d(dem, line, line3d, cellsize_int*3) 
+
+    flip_list = []
+    i = 0
+    with arcpy.da.SearchCursor(line3d,["Shape@"]) as cursor:
+        for row in cursor:
+            startZ = row[0].firstPoint.Z
+            #arcpy.AddMessage("startZ: " + str(startZ))
+            endZ = row[0].lastPoint.Z
+            #arcpy.AddMessage("endZ: " + str(endZ))
+
+            if startZ >= endZ:  ##Flip = True use equal in case the start and end point are the same
+                flip_list.append(1)
+            else:  ##Flip = False
+                flip_list.append(0)
+            i += 1 
+
+
+    del cursor
+    if i>0:
+        del row
+
+    #arcpy.AddMessage(flip_list)
+    #arcpy.AddMessage(str(sum(flip_list)))
+
+    if sum(flip_list) > 0:
+        with arcpy.da.UpdateCursor(line,["Flip"]) as cursor:
+            i = 0
+            for row in cursor:
+                row[0] = flip_list[i]
+                cursor.updateRow(row)
+                i += 1 
+        del row, cursor
+
+        arcpy.MakeFeatureLayer_management(line, "lyrLines")
+        arcpy.SelectLayerByAttribute_management("lyrLines", "NEW_SELECTION", '"Flip" > 0')
+        arcpy.AddMessage("The number of fliped lines is: " + str(sum(flip_list)))
+        arcpy.FlipLine_edit("lyrLines")  ##Need to change to lyrLines
+        arcpy.SelectLayerByAttribute_management("lyrLines", "CLEAR_SELECTION")
+
+    arcpy.DeleteField_management (line, "Flip")
+    arcpy.Delete_management(line3d)
+'''
 
 #------------------------------------------------------------------------------------------------------------
 # This is the main function for the ice thickness calculation based on Volta program. This function can be call by the overall model
@@ -161,6 +221,7 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
 
     ##Check and Flip flowline direction
     arcpy.AddMessage("Checking flowline direction....")
+    print("Checking flowline direction....")
     Check_If_Flip_Line_Direction (flowline, dem)
 
     exist_fields_list_centrelines = [f.name for f in arcpy.ListFields(flowline)] #List of current field names in outline layer
@@ -220,6 +281,7 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
             if shear_stress_test == "true":
                 shear_stress_value = shear_stress_calculation(subset_flowline, single_outline, dem, 50000, 200000) ##revised based onupdated function
                 arcpy.AddMessage("The shear stress derived for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
+                print("The shear stress derived for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
             else:
                 arcpy.AddMessage("Use the user-specified shear stress for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
             row[1] = int(shear_stress_value)
@@ -243,6 +305,7 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
             fl_length = row[3]
             #arcpy.AddMessage("Calculating ice thickness on centreline "+str(counter+1) + ' of ' +str(len(flow_id_list)))
             arcpy.AddMessage("Calculating ice thickness on centreline "+str(row[0])) ##+ ' of ' +str(len(flow_id_list)))
+            print("Calculating ice thickness on centreline "+str(row[0])) ##+ ' of ' +str(len(flow_id_list)))
             shape_factor_list = []
             yield_stress = row[2]
             points_glac = "in_memory\\points_glac"+str(row[0])
@@ -287,7 +350,8 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
             slope_reclass_string = "0"+" "+str(effective_slope_limit)+" "+"1"+";"+str(effective_slope_limit)+" "+"90"+" "+"NODATA"
 
             dem_glac_clip = arcpy.Clip_management(dem, "#", "in_memory\\dem_glac_clip",single_outline,"","ClippingGeometry")
-            slope_raster = arcpy.Slope_3d(dem_glac_clip,"in_memory\\slope_raster", "DEGREE")
+            #slope_raster = arcpy.Slope_3d(dem_glac_clip,"in_memory\\slope_raster", "DEGREE")
+            slope_raster = Slope(dem_glac_clip)
             reclass_slope_raster = arcpy.Reclassify_3d(slope_raster,"Value",slope_reclass_string,"in_memory\\reclass_slope_raster","NODATA")
             reclass_slope_polygons = arcpy.RasterToPolygon_conversion(reclass_slope_raster,"in_memory\\reclass_slope_polygons")
             final_perpendiculars_EW = arcpy.Clip_analysis(final_perpendiculars,reclass_slope_polygons, "in_memory\\final_perpendiculars_EW")
@@ -529,6 +593,8 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
 
     if (interpolate_check == "true" and len(raster_out) > 0):  #make sure the output raster has been assigned
         arcpy.AddMessage("Interpolating ice thickness raster...")
+        print("Interpolating ice thickness raster...")
+
         dissolve_outlines = arcpy.Dissolve_management(outline, "in_memory\\dissolve_outlines")
         singlepart_outlines = arcpy.MultipartToSinglepart_management(dissolve_outlines, "in_memory\\singlepart_outlines")
         outline_lines_in = arcpy.PolygonToLine_management(singlepart_outlines, "in_memory\\outlines_line_in")
@@ -609,22 +675,28 @@ if __name__ == '__main__':
 
     if spatial_ref_dem.linearUnitName == "Meter":
         arcpy.AddMessage("The DEM projection is: " + spatial_ref_dem.name)
+        print("The DEM projection is: " + spatial_ref_dem.name)
     else:
         arcpy.AddMessage("The unit of the DEM projection is not in meter. Please re-project the DEM to a projected coordinate system for the analysis!")
+        print("The DEM projection is: " + spatial_ref_dem.name)
         exit()   
 
     if spatial_flowline.linearUnitName == "Meter":
         arcpy.AddMessage("The flowline projection is: " + spatial_flowline.name)
+        print("The DEM projection is: " + spatial_ref_dem.name)
     else:
         arcpy.AddMessage("The unit of the flowline projection is not in meter. Please re-project it to a projected coordinate system for the analysis!")
+        print("The DEM projection is: " + spatial_ref_dem.name)
         exit()   
 
 
     #if "UTM" in spatial_outline.name:
     if spatial_outline.linearUnitName == "Meter":
         arcpy.AddMessage("The outline projection is: " + spatial_outline.name)
+        print("The DEM projection is: " + spatial_ref_dem.name)
     else:
         arcpy.AddMessage("The unit of the outline projection is not in meter. Please re-project it to a projected coordinate system for the analysis!")
+        print("The DEM projection is: " + spatial_ref_dem.name)
         exit()   
 
     #arcpy.AddMessage(str(spatial_ref_dem.PCSCode))
@@ -633,8 +705,10 @@ if __name__ == '__main__':
     if (spatial_ref_dem.PCSCode == spatial_outline.PCSCode) and (spatial_ref_dem.PCSCode == spatial_flowline.PCSCode):
     
         arcpy.AddMessage("DEM, flowline, and outlines all have the same projected coordinate system: " + spatial_ref_dem.name)
+        print("The DEM projection is: " + spatial_ref_dem.name)
     else:
         arcpy.AddMessage("DEM ,flowline,or outlines have different map projections. Please re-project the datasets to the same projection!")
+        print("The DEM projection is: " + spatial_ref_dem.name)
         exit()   
 
     ##Need to resample the DEM to a DEM with integer resolution

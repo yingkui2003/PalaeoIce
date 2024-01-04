@@ -122,41 +122,54 @@ def Ice_Thickness_Calculationbak(flowPnts):
 # It is revised from the codes by Pellitero et al.(2016) in GlaRe.
 #------------------------------------------------------------------------------------------------------------
 def Check_If_Flip_Line_Direction(line, dem):
+    cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
+    cellsize_int = int(float(cellsize.getOutput(0)))
+    #arcpy.AddMessage("cellsize_int: " + str(cellsize_int))
+
+    line3d = arcpy.env.scratchGDB + "\\line3d"
     arcpy.AddField_management(line, "Flip", "Long", "", "", "", "", "", "", "")
-    updCursor = arcpy.da.UpdateCursor(line, ["Shape@", "Flip"])
-    nFlip = 0
+
+    arcpy.InterpolateShape_3d(dem, line, line3d, cellsize_int*3) 
+
+    flip_list = []
     i = 0
-    for curLine in updCursor:
-        Startpoint2 = curLine[0].firstPoint
-        Startpoint = arcpy.Geometry('Point',Startpoint2)
-        coord= str(Startpoint2.X)+" "+str(Startpoint2.Y)
-        Cellvalue=arcpy.GetCellValue_management(dem, coord)
-        Startpoint.Z=Cellvalue.getOutput(0)
-        Lastpoint2 = curLine[0].lastPoint
-        Lastpoint = arcpy.Geometry('Point',Lastpoint2)
-        coord= str(Lastpoint2.X)+" "+str(Lastpoint2.Y)
-        Cellvalue=arcpy.GetCellValue_management(dem, coord)
-        Lastpoint.Z=Cellvalue.getOutput(0)
-        if Startpoint.Z >= Lastpoint.Z:  ##Flip = True use equal in case the start and end point are the same
-            nFlip = nFlip + 1
-            curLine[1] = 1
-        else:  ##Flip = False
-            curLine[1] = 0
-        updCursor.updateRow(curLine)
-        i += 1 
-        
-    if nFlip > 0:
+    with arcpy.da.SearchCursor(line3d,["Shape@"]) as cursor:
+        for row in cursor:
+            startZ = row[0].firstPoint.Z
+            #arcpy.AddMessage("startZ: " + str(startZ))
+            endZ = row[0].lastPoint.Z
+            #arcpy.AddMessage("endZ: " + str(endZ))
+
+            if startZ >= endZ:  ##Flip = True use equal in case the start and end point are the same
+                flip_list.append(1)
+            else:  ##Flip = False
+                flip_list.append(0)
+            i += 1 
+
+    del cursor
+    if i>0:
+        del row
+
+    #arcpy.AddMessage(flip_list)
+    #arcpy.AddMessage(str(sum(flip_list)))
+
+    if sum(flip_list) > 0:
+        with arcpy.da.UpdateCursor(line,["Flip"]) as cursor:
+            i = 0
+            for row in cursor:
+                row[0] = flip_list[i]
+                cursor.updateRow(row)
+                i += 1 
+        del row, cursor
+
         arcpy.MakeFeatureLayer_management(line, "lyrLines")
         arcpy.SelectLayerByAttribute_management("lyrLines", "NEW_SELECTION", '"Flip" > 0')
-        #arcpy.AddMessage("Count of selected features is " + str(nFlip))
+        arcpy.AddMessage("The number of fliped lines is: " + str(sum(flip_list)))
         arcpy.FlipLine_edit("lyrLines")  ##Need to change to lyrLines
         arcpy.SelectLayerByAttribute_management("lyrLines", "CLEAR_SELECTION")
 
     arcpy.DeleteField_management (line, "Flip")
-    
-    del updCursor
-    if i>0:
-        del curLine
+    arcpy.Delete_management(line3d)
 
 
 #------------------------------------------------------------------------------------------------------------
@@ -235,21 +248,22 @@ def Calculate_ffactor (pointx, pointy, pointz, bndthickness):
         Zn = pointz[-1]
         height = Zn-Z0
         width = math.sqrt((math.pow((pointx[-1] -pointx[0]),2) + math.pow((pointy[-1] - pointy[0]),2)))
-        hypotenuse = math.sqrt(width*width + height*height)
-        k = height/width    
-        distance2D = 0
-        for i in range(1, len(pointx)):
-            dist = math.sqrt((math.pow(((pointx[i])-(pointx[i-1])),2)) +math.pow(((pointy[i])-(pointy[i-1])),2))
-            distance2D += dist
-            #distan2D.append(distance2D)
-            P += math.sqrt(math.pow((distance2D),2) + math.pow(((pointz[i])-(pointz[i-1])),2))
-            #distan3D.append(distance3D)
-            Surf_Elev = Z0 + k * distance2D
-            A += 0.5 * (dist*((Surf_Elev-(pointz[i-1])+(Surf_Elev-(pointz[i]))))) ####????
-            h_list.append(Surf_Elev - pointz[i])
+        if width > 0:
+            hypotenuse = math.sqrt(width*width + height*height)
+            k = height/width    
+            distance2D = 0
+            for i in range(1, len(pointx)):
+                dist = math.sqrt((math.pow(((pointx[i])-(pointx[i-1])),2)) +math.pow(((pointy[i])-(pointy[i-1])),2))
+                distance2D += dist
+                #distan2D.append(distance2D)
+                P += math.sqrt(math.pow((distance2D),2) + math.pow(((pointz[i])-(pointz[i-1])),2))
+                #distan3D.append(distance3D)
+                Surf_Elev = Z0 + k * distance2D
+                A += 0.5 * (dist*((Surf_Elev-(pointz[i-1])+(Surf_Elev-(pointz[i]))))) ####????
+                h_list.append(Surf_Elev - pointz[i])
 
-        H = max(h_list) * width/hypotenuse
-    
+            H = max(h_list) * width/hypotenuse
+            
     if P*H > 0:
         ffactor = A/(P*H)
     else:
@@ -291,40 +305,43 @@ def Calculate_ffactor_by_polyfit (pointx, pointy, pointz, bndthickness):
         height = Zn-Z0
         width = math.sqrt((math.pow((pointx[-1] -pointx[0]),2) + math.pow((pointy[-1] - pointy[0]),2)))
         #hypotenuse = math.sqrt(width*width + height*height)
-        k = height/width    
-        #distance2D = 0
-
-        cumdis = 0
-        distan2D.append(0)
-        for i in range(1, len(pointz)):
-            dist = math.sqrt((math.pow(((pointx[i])-(pointx[i-1])),2)) +math.pow(((pointy[i])-(pointy[i-1])),2))
-            cumdis += dist 
-            distan2D.append(cumdis)
-            Surf_Elev = Z0 + k * cumdis
-            #A += 0.5 * (dist*((Surf_Elev-(pointz[i-1])+(Surf_Elev-(pointz[i]))))) ####????
-            h_list.append(Surf_Elev - pointz[i])
-
-        H = max(h_list)
-        #arcpy.AddMessage(distan2D)
-        #width = max(distan2D) ##get the width of the cross section
-        try:
-            polyfit = np.polyfit(distan2D,pointz, 2)
-            a = polyfit[0]
-            if (a > 0):
-                try:
-                    r = math.sqrt(1.0/(H * a + 0.001)) ##make sure not divide zero
-                    ffactor = 0.9 * r / (1+ 0.9 * r)
-                except:
-                    ffactor = 0.8
-                #arcpy.AddMessage("F factor is: " + str(ffactor))
-            
-                #####02/16/2023
-                #ffactor = 0.8 ##just test if 0.8 works for the comparision of the Glacier No. 1
-            else:
-                #ffactor = 1.0
-                ffactor = 0.8 ##Based Volta the max value is 0.8; This is just for the comparision with Volta; need to check with the real dataset
-        except:
+        if width == 0:
             ffactor = 0.8
+        else:
+            k = height/width    
+            #distance2D = 0
+
+            cumdis = 0
+            distan2D.append(0)
+            for i in range(1, len(pointz)):
+                dist = math.sqrt((math.pow(((pointx[i])-(pointx[i-1])),2)) +math.pow(((pointy[i])-(pointy[i-1])),2))
+                cumdis += dist 
+                distan2D.append(cumdis)
+                Surf_Elev = Z0 + k * cumdis
+                #A += 0.5 * (dist*((Surf_Elev-(pointz[i-1])+(Surf_Elev-(pointz[i]))))) ####????
+                h_list.append(Surf_Elev - pointz[i])
+
+            H = max(h_list)
+            #arcpy.AddMessage(distan2D)
+            #width = max(distan2D) ##get the width of the cross section
+            try:
+                polyfit = np.polyfit(distan2D,pointz, 2)
+                a = polyfit[0]
+                if (a > 0):
+                    try:
+                        r = math.sqrt(1.0/(H * a + 0.001)) ##make sure not divide zero
+                        ffactor = 0.9 * r / (1+ 0.9 * r)
+                    except:
+                        ffactor = 0.8
+                    #arcpy.AddMessage("F factor is: " + str(ffactor))
+                
+                    #####02/16/2023
+                    #ffactor = 0.8 ##just test if 0.8 works for the comparision of the Glacier No. 1
+                else:
+                    #ffactor = 1.0
+                    ffactor = 0.8 ##Based Volta the max value is 0.8; This is just for the comparision with Volta; need to check with the real dataset
+            except:
+                ffactor = 0.8
     else:
         #ffactor = 1.0
         ffactor = 0.8
