@@ -3,7 +3,7 @@ A new toolbox, ELA.tbx, is added to the PalaeoIce 2.0 folder. This toolbox is re
 
 ![image](https://github.com/yingkui2003/PalaeoIce/assets/24683137/25a6d982-215f-4036-bb7d-c57f30a88ed6)
 
-# PalaeoIce 2.0 is available
+# PalaeoIce 2.0 is available (6/26/2022)
 PalaeoIce 2.0 is the updated version of the PalaeoIce toolbox. The major changes of PalaeoIce 2.0 include:
 1.	Added a set of new tools for extant glacier centerlines, extant glacier thickness, flowline quality check, and bare-earth topography preparation.
 2.	Reorganized the toolbox and removed the two fully automated tools because most reconstructions need to check separated steps and there are more tools for each step of the reconstruction.
