@@ -148,6 +148,7 @@ Li Y., 2023. PalaeoIce: an automated method to reconstruct palaeoglacier using g
             Fixed the errors of Volta centerline and Connect OGGM centerlines when using float DEM and when the resolution of DEM is a float number;
             Fixed the errors when the path and filename of the ArcGIS Pro project include empty space(s)
 10/23/2023: Fixed an error in volta centerline (the output Features are same as overlay Clip Features).
+1/3/2024:   Updated some codes related to OGGM centerline connection and volta ice thickness calculation.
 
 # Contact info
 Yingkui Li
