@@ -90,8 +90,9 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, indem, search_di
                     arcpy.AddMessage("Delete small lines")
                     cursor.deleteRow()
         del row, cursor
-         
-        arcpy.cartography.SmoothLine(sel_centerlines, sel_flowlines, "PAEK", 200)
+        
+        ##Smmoth centerlines and make sure that the smoothlines do not cross the outline
+        arcpy.cartography.SmoothLine(sel_centerlines, sel_flowlines, "PAEK", 200, "", "", sel_outline)
 
         #arcpy.Select_analysis(flowlineswithGlacerID,sel_flowlines_with_GlacerID,query)
         #arcpy.Select_analysis(outlines,sel_outline_GlacerID,query)
@@ -155,11 +156,14 @@ def Connect_OGGM_Centerline (glacier_outlines, OGGMcenterlines, indem, search_di
                 if numLoop* search_dis < 300: ##if larger than 500 m, try using the end points
                     arcpy.Near_analysis(otherline_start_nodes, longest_flowline, search_radius, "LOCATION", "")
                 else: ##if larger than 500 m, try using the end points
-                    arcpy.AddMessage("use the other end...")
-                    print("use the other end...")
-                    arcpy.FeatureVerticesToPoints_management(sel_flowlines, otherline_start_nodes, "END")
-                    arcpy.Near_analysis(otherline_start_nodes, longest_flowline, search_radius, "LOCATION", "")
-
+                    #arcpy.AddMessage("use the other end...")
+                    print("cannot connect some line...")
+                    bLoop = False
+                    continue
+                    ##Do not use the other end
+                    #arcpy.FeatureVerticesToPoints_management(sel_flowlines, otherline_start_nodes, "END")
+                    #arcpy.Near_analysis(otherline_start_nodes, longest_flowline, search_radius, "LOCATION", "")
+                    
                 #arcpy.CopyFeatures_management(otherline_start_nodes, "d:\\temp\\otherline_start_nodes.shp")
                     
                 leftover = 0

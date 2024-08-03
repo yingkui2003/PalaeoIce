@@ -49,7 +49,7 @@ def Check_Flowline_Overlap(inflowline, outflowline):
     with arcpy.da.UpdateCursor(flowline, ["OID@"]) as cursor:
         for row in cursor:
             if row[0] in removeIds:
-                #arcpy.AddMessage("Delete one")
+                arcpy.AddMessage("Delete one")
                 cursor.deleteRow()
     del row, cursor
 

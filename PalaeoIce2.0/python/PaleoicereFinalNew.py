@@ -1159,6 +1159,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
 
     arcpy.AddMessage("Assigning Glacier ID...")
     Add_GlacierID_by_Touches (inputflowline, GlacierID, flowlines)
+    arcpy.CopyFeatures_management(flowlines, "d:\\tempLyk\\flowlines.shp") ##Can revise here to include glacier ID as a list?????
 
 
     ###The process to ordering the flowlines
@@ -1173,6 +1174,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
     pntArray = arcpy.da.FeatureClassToNumPyArray("in_memory\\flowline_startpnts_with_elevation","RASTERVALU")
     height = np.array([item[0] for item in pntArray])
     #arcpy.AddMessage(height)
+    #arcpy.AddMessage(str(len(height)))
     
     with arcpy.da.SearchCursor(flowlines, ['SHAPE@', GlacierID]) as cursor:
         i = 0
@@ -1210,8 +1212,11 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
 
     geometry = arcpy.CopyFeatures_management(flowlines, arcpy.Geometry()) ##Can revise here to include glacier ID as a list?????
 
+    #arcpy.AddMessage(order)
+    #arcpy.AddMessage(str(len(order)))
+
     for i in order:
-        
+        #arcpy.AddMessage(str(i))
         Length = geometry[i].length
         Length = int(Length)
         try:

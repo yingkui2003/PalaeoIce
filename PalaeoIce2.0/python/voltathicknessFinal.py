@@ -18,7 +18,11 @@
 #-------------------------------------------------------------------------------
 
 #import SharedFunctions  
-from SharedFunctions import *  
+from SharedFunctions import *
+import time
+temp_workspace = "in_memory" 
+#if ArcGISPro:
+#    temp_workspace = "memory" 
 #------------------------------------------------------------------------------------------------------------
 # This function derives the shear stress of a glacier based on the primary flowline and ice surface elevations.
 # To make sure to extract the valid elevations for the start and end points of the flowline, this tool applied a
@@ -28,7 +32,7 @@ from SharedFunctions import *
 # Specifically, the contour step is changed to 300 m (1000ft) as proposed by the original paper (1986)
 # and counted the missing part from the highest contour to the highest elevation of the flowline.
 #------------------------------------------------------------------------------------------------------------
-def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss): 
+def shear_stress_calculation_bak(mainflowline, outline, icedem, min_ss, max_ss): 
     #arcpy.AddMessage("Start shear stress calculation...")
     cellsize = arcpy.GetRasterProperties_management(icedem,"CELLSIZEX")
     cellsize_value = float(cellsize.getOutput(0)) ### should change to float ?????
@@ -48,8 +52,6 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     del row, cursor
     
     flowlinelength = max_length
-    #arcpy.AddMessage("Flowline Length is: " + str(flowlinelength))
-
 
     ##4/21/2023: Can also used the extract value to  with the interpretation option
     arcpy.FeatureVerticesToPoints_management(primary_flowline, "in_memory\\startendpnt", "BOTH_ENDS")
@@ -64,30 +66,6 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     startz = min(elev)
     endz = max(elev)
     Zdiff = float(endz - startz)
-    '''
-    if flowlinelength < 2600: ##if flowline length is less than 2.6 km, type A
-        polyArr = arcpy.da.FeatureClassToNumPyArray(outline, ('SHAPE@AREA'))
-        areas = np.array([item[0] for item in polyArr])
-        arcpy.AddMessage(areas)
-        area = max(areas)
-        volume = 3.93 * (area ** 1.124) ##
-        #Need to derive the shear stress
-        ave_tck = volume / area
-        arcpy.AddMessage("average thickness is:" + str(ave_tck))
-        #assuming the aveage f factor is 0.8
-        shape_factor = 0.8
-        shear_stress = 900 * 9.81 * ave_tck * Zdiff / flowlinelength /shape_factor
-        
-        arcpy.AddMessage("shear stress is:" + str(shear_stress))
-        if shear_stress < min_ss:
-            shear_stress = min_ss
-            arcpy.AddMessage("WARNING: The calculated shear stress is smaller than the specified minimum value, using the specified minimum value instead")
-        if shear_stress > max_ss: 
-            shear_stress = max_ss
-            arcpy.AddMessage("WARNING: The calculated shear stress is larger than the specified maximum value, using the specified maximum value instead")
-
-        return shear_stress       
-    '''
 
     extractDEM = ExtractByMask(icedem, outline)    
 
@@ -143,6 +121,88 @@ def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss):
     #    shear_stress = min_ss
     
     return shear_stress
+
+def shear_stress_calculation(mainflowline, outline, icedem, min_ss, max_ss): 
+    ##New codes
+    points = temp_workspace + "\\points"
+    primary_flowline = temp_workspace +"\\primary_flowline"
+    flowline3D = temp_workspace +"\\flowline3D"
+    elev_bin_polygon = temp_workspace + "\\elev_bin_polygon"
+    subset_flowline = temp_workspace + "\\subset_flowlines"
+    singlepart_subset_flowline = temp_workspace + "\\singlepart_subset_flowline"
+
+    primary_flowline = arcpy.CopyFeatures_management(mainflowline, primary_flowline)
+    ##Need to just keep the longest flowline
+    lengthArr = arcpy.da.FeatureClassToNumPyArray(primary_flowline, ('SHAPE@LENGTH'))
+    lengths = np.array([item[0] for item in lengthArr])
+    max_length = max(lengths)
+    ##Get the flowline length
+    lengths = []
+    with arcpy.da.UpdateCursor(primary_flowline,["SHAPE@LENGTH"]) as cursor:
+        for row in cursor:
+            if row[0] < max_length:
+                cursor.deleteRow()
+    del row, cursor
+    
+    flowlinelength = max_length
+    
+    area = 0
+    with arcpy.da.SearchCursor(outline,["SHAPE@AREA"]) as cursor:
+        for row in cursor:
+            area = row[0]
+    del row, cursor
+    cellsizeX = icedem.meanCellWidth
+    
+    arcpy.InterpolateShape_3d(icedem, primary_flowline, flowline3D, cellsizeX)
+    arcpy.FeatureVerticesToPoints_management(flowline3D, points, "ALL")
+    pnt3DArray = arcpy.da.FeatureClassToNumPyArray(points,["SHAPE@Z"])
+    Zs = np.array([item[0] for item in pnt3DArray])
+
+    extractDEM = ExtractByMask(icedem, outline)
+
+    max_elev = np.max(Zs)
+    min_elev = np.min(Zs)
+    contour_arr = np.arange(min_elev, max_elev, 300)
+    sum_a_cos = 0
+    if len(contour_arr) == 1:
+        elev_diff = max_elev - min_elev
+        #segment_length = dis.sum()
+        segment_length = flowlinelength
+        angle_rad = math.atan(elev_diff/segment_length)
+        sum_a_cos = area/(math.cos(angle_rad))
+    else: ## if the elevation difference is > 300 m
+        if (max_elev - np.max(contour_arr)) > 1: ## if the max elevation is 10 m higher than the contour arr max
+            np.append(contour_arr, max_elev)
+
+        for i in range(1, len(contour_arr)):
+            z_start = contour_arr[i-1]
+            z_end = contour_arr[i]
+
+            outCon = Con(((extractDEM > z_start) & (extractDEM < z_end)), 1)
+            arcpy.RasterToPolygon_conversion(outCon, elev_bin_polygon, "SIMPLIFY", "VALUE")
+            polyArr = arcpy.da.FeatureClassToNumPyArray(elev_bin_polygon, ('SHAPE@AREA'))
+            areas = np.array([item[0] for item in polyArr])
+            if len(areas) > 0:
+                area = max(areas)
+                arcpy.Clip_analysis(primary_flowline, elev_bin_polygon, subset_flowline) ### Use clip analysis to replace the select by location
+                arcpy.MultipartToSinglepart_management(subset_flowline, singlepart_subset_flowline)
+                lengthArr = arcpy.da.FeatureClassToNumPyArray(singlepart_subset_flowline, ('SHAPE@LENGTH'))
+                lengths = np.array([item[0] for item in lengthArr])
+                if len(lengths) > 0:
+                    max_length = max(lengths)
+                    if max_length > 0:
+                        angle_rad = math.atan((z_end - z_start)/max_length)
+                        area_cos = area/(math.cos(angle_rad))
+                        sum_a_cos += area_cos
+            z_start = z_end
+
+    shear_stress = 27000* sum_a_cos**0.106  ### this equation was from Glacier volume estimation on Cascade volcanoes 1986 paper in Annual of Glaciology
+    if shear_stress < min_ss:
+        shear_stress = min_ss
+    if shear_stress > max_ss: 
+        shear_stress = max_ss
+    return shear_stress
+
 '''
 #------------------------------------------------------------------------------------------------------------
 # This function check each line in the line feature and make sure the line is from low elevation to high
@@ -261,51 +321,80 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
                 row[1]= (0.0540*area_km2**1.20)/area_km2*1000  ###Where this equation come from????
             cursor.updateRow(row)
     del row, cursor
-    
+
     order_dict = {}   ##this is the global variable
     max_length_dict = {}
+
+    start_time = time.time()    
+    polyArray = arcpy.da.FeatureClassToNumPyArray(outline,('outline_id'))##,'stress_pa'))
+    outlineID = np.array([item[0] for item in polyArray])
+    #uniqueiceID = np.unique(iceID)
+    ss_list = []
+    for gid in outlineID:
+        query = "outline_id = " + str(gid)
+        arcpy.AddMessage("Processing #" + str(gid) +"/" + str(len(outlineID)) + " of reconstructed glaciers...")                                                                                       
+        arcpy.Select_analysis (outline, "in_memory\\single_outline", query)
+        arcpy.SpatialJoin_analysis(flowline, "in_memory\\single_outline", "in_memory\\subset_flowline", "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "HAVE_THEIR_CENTER_IN")
+
+        flowlineArray = arcpy.da.FeatureClassToNumPyArray("in_memory\\subset_flowline",("SHAPE@LENGTH"))
+        lengths = np.array([item[0] for item in flowlineArray])
+        max_length = max(lengths)
+
+        max_length_dict[gid] = max_length
+        if shear_stress_test == "true":
+            shear_stress_value = shear_stress_calculation("in_memory\\subset_flowline", "in_memory\\single_outline", dem, 50000, 200000)
+            arcpy.AddMessage("derived shear stress: " + str(shear_stress_value))
+        else:
+            arcpy.AddMessage("Use the user-specified shear stress for glacier outline "+str(gid)+": "+str(int(shear_stress_value))+" Pa")
+
+        ss_list.append(int(shear_stress_value))        
+
+     ##Add shearstress value to the outline  
+    with arcpy.da.UpdateCursor(outline, ["stress_pa"]) as cursor:
+        i = 0
+        for row in cursor:
+            row[0] = ss_list[i]
+            cursor.updateRow(row)
+            i += 1
+    process_time = time.time() - start_time
+    arcpy.AddMessage("the processing time is: " + str(process_time))
+    '''
+    start_time = time.time()    
     with arcpy.da.UpdateCursor(outline, ["outline_id","stress_pa"]) as cursor:
         for row in cursor:
             outline_query = "outline_id = "+str(row[0])
             single_outline = arcpy.Select_analysis(outline, "in_memory\\single_outline", outline_query)  ###use the select analysis tool to replace all select by attribute and copy feature
-            subset_flowline = arcpy.Clip_analysis(flowline, single_outline, "in_memory\\subset_flowlines") ### Use clip analysis to replace the select by location
+            #subset_flowline = arcpy.Clip_analysis(flowline, single_outline, "in_memory\\subset_flowlines") ### Use clip analysis to replace the select by location
+            subset_flowline = arcpy.SpatialJoin_analysis(flowline, single_outline,"in_memory\\subset_flowline","JOIN_ONE_TO_ONE", "KEEP_COMMON","", "HAVE_THEIR_CENTER_IN")
 
-            length_list = []
-            with arcpy.da.SearchCursor(subset_flowline, ["SHAPE@LENGTH"]) as cursor_length:
-                for row_length in cursor_length:
-                    length_list.append(row_length[0])
-            del row_length, cursor_length
-            
-            max_length_outline = max(length_list)
-            max_length_dict[row[0]] = max_length_outline
+            lengthArr = arcpy.da.FeatureClassToNumPyArray(subset_flowline, ('SHAPE@LENGTH'))
+            lengths = np.array([item[0] for item in lengthArr])
+            max_length = max(lengths)
+            ##Get the flowline length
+            #max_length_dict[row[0]] = max_length_outline
+            max_length_dict[row[0]] = max_length
             if shear_stress_test == "true":
                 shear_stress_value = shear_stress_calculation(subset_flowline, single_outline, dem, 50000, 200000) ##revised based onupdated function
                 arcpy.AddMessage("The shear stress derived for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
-                print("The shear stress derived for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
             else:
                 arcpy.AddMessage("Use the user-specified shear stress for glacier outline "+str(row[0])+": "+str(int(shear_stress_value))+" Pa")
             row[1] = int(shear_stress_value)
             cursor.updateRow(row)
     del row, cursor
-
-    #arcpy.CopyFeatures_management(outline, "d:\\temp\\outline.shp")
-    #arcpy.CopyFeatures_management(flowline, "d:\\temp\\flowline.shp")
-    
-    #flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","","","", "WITHIN_CLEMENTINI")
+    process_time = time.time() - start_time
+    arcpy.AddMessage("the processing time is: " + str(process_time))
+    '''
     flowline_joined = arcpy.SpatialJoin_analysis(flowline, outline,"in_memory\\flowline_joined","JOIN_ONE_TO_ONE", "KEEP_COMMON","", "HAVE_THEIR_CENTER_IN")
-    #arcpy.CopyFeatures_management(flowline_joined, "c:\\test\\flowline_joined.shp")
 
     flowline_layer_split_vertex = arcpy.SplitLine_management(flowline, "in_memory\\flowline_layer_split_vertex")
-    flowline_layer_split_vertex_layer = arcpy.MakeFeatureLayer_management(flowline_layer_split_vertex, "in_memory\\flowline_layer_split_vertex_layer")
 
     #the loop for each flowline
     with arcpy.da.SearchCursor(flowline_joined, ["line_id","outline_id", "stress_pa","SHAPE@LENGTH"]) as cursor:
         counter = 0
         for row in cursor:
             fl_length = row[3]
-            #arcpy.AddMessage("Calculating ice thickness on centreline "+str(counter+1) + ' of ' +str(len(flow_id_list)))
             arcpy.AddMessage("Calculating ice thickness on centreline "+str(row[0])) ##+ ' of ' +str(len(flow_id_list)))
-            print("Calculating ice thickness on centreline "+str(row[0])) ##+ ' of ' +str(len(flow_id_list)))
+            #print("Calculating ice thickness on centreline "+str(row[0])) ##+ ' of ' +str(len(flow_id_list)))
             shape_factor_list = []
             yield_stress = row[2]
             points_glac = "in_memory\\points_glac"+str(row[0])
@@ -352,13 +441,14 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
             dem_glac_clip = arcpy.Clip_management(dem, "#", "in_memory\\dem_glac_clip",single_outline,"","ClippingGeometry")
             #slope_raster = arcpy.Slope_3d(dem_glac_clip,"in_memory\\slope_raster", "DEGREE")
             slope_raster = Slope(dem_glac_clip)
-            reclass_slope_raster = arcpy.Reclassify_3d(slope_raster,"Value",slope_reclass_string,"in_memory\\reclass_slope_raster","NODATA")
+            reclass_slope_raster = arcpy.Reclassify_3d(slope_raster,"Value",slope_reclass_string,"in_memory\\recls_slp","NODATA")
             reclass_slope_polygons = arcpy.RasterToPolygon_conversion(reclass_slope_raster,"in_memory\\reclass_slope_polygons")
             final_perpendiculars_EW = arcpy.Clip_analysis(final_perpendiculars,reclass_slope_polygons, "in_memory\\final_perpendiculars_EW")
             arcpy.CalculateField_management(final_perpendiculars_EW,"EW","!SHAPE.LENGTH!","PYTHON_9.3")
 
             final_perpendiculars_EW_layer = arcpy.MakeFeatureLayer_management(final_perpendiculars_EW, "in_memory\\final_perpendiculars_EW_layer")
             final_perpendiculars_layer = arcpy.MakeFeatureLayer_management(final_perpendiculars, "in_memory\\final_perpendiculars_layer")
+
             if ArcGISPro == 0: ##For ArcMAP
                 arcpy.AddJoin_management(final_perpendiculars_layer, "orig_perp_ID", final_perpendiculars_EW_layer, "orig_perp_ID")
                 arcpy.CalculateField_management(final_perpendiculars_layer,str("final_perpendiculars")+".EW","["+str("final_perpendiculars_EW")+".EW]")
@@ -376,6 +466,22 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
                         except:
                             pass
                 del perpcursor, perprow
+
+            '''
+            arr=arcpy.da.FeatureClassToNumPyArray(final_perpendiculars_EW, ["orig_perp_ID", "EW"])
+            perpIdLst = [item[0] for item in arr]
+            EWsLst = [item[1] for item in arr]
+            #with arcpy.da.UpdateCursor(final_perpendiculars_layer, ["orig_perp_ID", "EW"]) as perpcursor:
+            with arcpy.da.UpdateCursor(final_perpendiculars, ["orig_perp_ID", "EW"]) as perpcursor:
+                for perprow in perpcursor:
+                    try:
+                        idx = perpIdLst.index(perprow[0])
+                        perprow[1] = EWsLst[idx]
+                        cursor.updateRow(perprow)
+                    except:
+                        pass
+            del perpcursor, perprow
+            '''
             
             cross_test = arcpy.Erase_analysis(flowline_layer_split_vertex, single_flowline, "in_memory\\cross_test") ## use erase function to replace the above processes
 
@@ -433,8 +539,6 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
                 ele_dict[index] = value 
                 
             #Loop #4 to derive all parameters
-            
-            #arcpy.AddMessage(ele_dict)
             
             with arcpy.da.UpdateCursor(points_glac,fields) as cursor6:
                 for row6 in cursor6:
@@ -601,7 +705,8 @@ def Ice_Thickness_Volta (flowline, dem, in_outline, ice_density, slope_limit, mi
         arcpy.AddField_management(outline_lines_in, "contour", "SHORT")
         arcpy.CalculateField_management(outline_lines_in,"contour",0)
         if (cellsize_interpolate_check == "true" and len(cellsize_interpolate_user_spec) > 0) :
-            cellsize_interp = int(cellsize_interpolate_user_spec)
+            #cellsize_interp = int(cellsize_interpolate_user_spec)
+            cellsize_interp = float(cellsize_interpolate_user_spec)
         else:
             cellsize_interp = cellsize_float
 
@@ -712,6 +817,8 @@ if __name__ == '__main__':
         exit()   
 
     ##Need to resample the DEM to a DEM with integer resolution
+    ##Maybe it is not necessary 5/7/2024
+    '''
     indem = "in_memory\\indem"
     if cellsize_float > int (cellsize_float):
         arcpy.AddMessage("Resample DEM to an integer resolution DEM")
@@ -721,11 +828,16 @@ if __name__ == '__main__':
         #arcpy.CopyRaster_management(indem, "d:\\temp\\indem.tif")
     else:
         arcpy.CopyRaster_management(dem, indem)
-
     
     int_dem = Int(indem)
+    '''
 
-    Ice_Thickness_Volta (flowline, int_dem, outline, ice_density, slope_limit, min_slope, point_res_check, point_res, shear_stress_test, shear_stress_value, final_points,
+    #Ice_Thickness_Volta (flowline, int_dem, outline, ice_density, slope_limit, min_slope, point_res_check, point_res, shear_stress_test, shear_stress_value, final_points,
+    #                     interpolate_check, cellsize_interpolate_check, cellsize_interpolate_user_spec, raster_out)
+
+    arcpy.AddMessage("Volta with float cell resolution")
+
+    Ice_Thickness_Volta (flowline, Raster(dem), outline, ice_density, slope_limit, min_slope, point_res_check, point_res, shear_stress_test, shear_stress_value, final_points,
                          interpolate_check, cellsize_interpolate_check, cellsize_interpolate_user_spec, raster_out)
 
     arcpy.Delete_management("in_memory")

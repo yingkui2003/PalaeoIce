@@ -184,8 +184,8 @@ def cross_section_points_with_TF(flowlinepoints, flowline, watershed, beddem, ta
     #arcpy.CopyFeatures_management("in_memory\\watershedbuf", "c:\\test\\watershedbuf.shp")
     
     ##use the buffer so that the extract elevations of the points along the watershed boundary are not zero
+    error = False
     try:
-        error = False
         extractDEM = ExtractByMask(beddem, "in_memory\\watershedbuf") 
     except:
         error = True
@@ -688,39 +688,43 @@ def Ice_Thickness_Calculation(flowPnts, min_ss, max_ss):
             #abs_diff.append(np.mean(np.absolute(arr2)))    
 
         mean_ratioArr = np.array(mean_ratio)
-        max_ratio_diff = np.max(np.abs((mean_ratioArr - 1 )))
-        #print max_ratio_diff
-        #max_abs_diff = max(abs_diff)
-        #arcpy.AddMessage("Mean ratio is: ")
-        #arcpy.AddMessage(mean_ratio)
-
-        #arcpy.AddMessage("Ratio difference from 1.0 is: ")
-        #arcpy.AddMessage(max_ratio_diff)
-        
-        #print max_abs_diff
-        ##Adjust the shear stress based on the difference
-        #err = 0
-        if (max_ratio_diff > 0.01 and nLoop < 5):
-            for i in range(len(Array)):
-                OFID = Array[i][1]
-                idx_result = np.where(uniqueOFIDsArr == OFID)
-                try:
-                    idx = idx_result[0][0]
-                    #print idx
-                    ##update Shearstress
-                    ss = Array[i][5] * mean_ratio[idx]
-                    ss = max(min_ss, ss)
-                    ss = min(ss, max_ss)
-                    Array[i][5] = ss
-                    #print Array[i][5]
-                except:
-                    #print "error"
-                    #err += 1
-                    pass
-            nLoop += 1
-        else:
+        if len(mean_ratioArr) == 0:
             bLoop = False
-        #print err
+            continue
+        else:
+            max_ratio_diff = np.max(np.abs((mean_ratioArr - 1 )))
+            #print max_ratio_diff
+            #max_abs_diff = max(abs_diff)
+            #arcpy.AddMessage("Mean ratio is: ")
+            #arcpy.AddMessage(mean_ratio)
+
+            #arcpy.AddMessage("Ratio difference from 1.0 is: ")
+            #arcpy.AddMessage(max_ratio_diff)
+            
+            #print max_abs_diff
+            ##Adjust the shear stress based on the difference
+            #err = 0
+            if (max_ratio_diff > 0.01 and nLoop < 5):
+                for i in range(len(Array)):
+                    OFID = Array[i][1]
+                    idx_result = np.where(uniqueOFIDsArr == OFID)
+                    try:
+                        idx = idx_result[0][0]
+                        #print idx
+                        ##update Shearstress
+                        ss = Array[i][5] * mean_ratio[idx]
+                        ss = max(min_ss, ss)
+                        ss = min(ss, max_ss)
+                        Array[i][5] = ss
+                        #print Array[i][5]
+                    except:
+                        #print "error"
+                        #err += 1
+                        pass
+                nLoop += 1
+            else:
+                bLoop = False
+            #print err
 
            
     
@@ -892,6 +896,10 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
 
     del cursor, row
 
+    #arcpy.AddMessage(height)
+    #arcpy.AddMessage(str(len(height)))
+
+
     ##Order the line geometries in the list
     arcpy.AddMessage("Ordering flowlines...")
     arcpy.AddField_management(flowlines,"ProcessID","LONG",6)
@@ -983,175 +991,175 @@ def PaleoIceReconstructionwithboundary(BedDEM, inputflowline, Distance, icebound
     uniqueiceID = np.unique(iceID)
 
     for gid in range(len(uniqueiceID)):
-        try:
-            query = GlacierID + " = " + str(uniqueiceID[gid])
-            arcpy.AddMessage("Processing #" + str(gid+1) +"/" + str(len(uniqueiceID)) + " of reconstructed glaciers...")                                                                                       
-            arcpy.Select_analysis (flowlines, flowline, query)
+        #try:
+        query = GlacierID + " = " + str(uniqueiceID[gid])
+        arcpy.AddMessage("Processing #" + str(gid+1) +"/" + str(len(uniqueiceID)) + " of reconstructed glaciers...")                                                                                       
+        arcpy.Select_analysis (flowlines, flowline, query)
 
-            ###Select the flowline points corresponding to the flowlines
-            arcpy.Select_analysis (flowline3dpoints, selflowline3dpoints, query)
-            
+        ###Select the flowline points corresponding to the flowlines
+        arcpy.Select_analysis (flowline3dpoints, selflowline3dpoints, query)
+        
 
-            ###Merge the branches and start to run the ice thickness calculation 
-            arcpy.Near_analysis (selflowline3dpoints, selflowline3dpoints, Distance * 2) ##setup a search radius for near analysis (may be problematic to choose the upstream near point; should select the nearest two points and use the average value!! or keep the intersect points as part of the flowpoints)
-            arcpy.AddXY_management(selflowline3dpoints)
+        ###Merge the branches and start to run the ice thickness calculation 
+        arcpy.Near_analysis (selflowline3dpoints, selflowline3dpoints, Distance * 2) ##setup a search radius for near analysis (may be problematic to choose the upstream near point; should select the nearest two points and use the average value!! or keep the intersect points as part of the flowpoints)
+        arcpy.AddXY_management(selflowline3dpoints)
 
-            ##Get the ice polygon for the selflowline3dpoints by spatial join
-            arcpy.SpatialJoin_analysis(iceboundary, selflowline3dpoints, icepolyselect, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "#", "#")
-            
+        ##Get the ice polygon for the selflowline3dpoints by spatial join
+        arcpy.SpatialJoin_analysis(iceboundary, selflowline3dpoints, icepolyselect, "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "#", "#")
+        
 
-            '''
-            ##Get the order of the processing ID
-            flowlineArray = arcpy.da.FeatureClassToNumPyArray(flowline,"ProcessID")
-            orderID = np.array([item[0] for item in flowlineArray])
-            sortID = np.sort(orderID, axis=0) ##sort the uniqueID from small to large
+        '''
+        ##Get the order of the processing ID
+        flowlineArray = arcpy.da.FeatureClassToNumPyArray(flowline,"ProcessID")
+        orderID = np.array([item[0] for item in flowlineArray])
+        sortID = np.sort(orderID, axis=0) ##sort the uniqueID from small to large
 
-            ##only select the main flowline to delieate the watershed
-            queryMainFlowline = "ProcessID = "+ str(sortID[0])  
-            arcpy.Select_analysis(flowline, mainflowline, queryMainFlowline)
-            arcpy.FeatureVerticesToPoints_management(mainflowline, singepoint, "START") ###the flowline direction is from the downslope to upper slope or need to check the direction
+        ##only select the main flowline to delieate the watershed
+        queryMainFlowline = "ProcessID = "+ str(sortID[0])  
+        arcpy.Select_analysis(flowline, mainflowline, queryMainFlowline)
+        arcpy.FeatureVerticesToPoints_management(mainflowline, singepoint, "START") ###the flowline direction is from the downslope to upper slope or need to check the direction
 
-            ##select the ice polygon corresponding to the flowline glacier ID
-            ##Get the ice polygon with the considertation of the watershed
-            startperppolygon = Startpoint_perpendiculars(mainflowline, int(cellsize_float), 300) ##Just create a short distance perpendicular polygon (need polygon because sometimes line does not cross the highest Facc) from the start point to get the highest Facc point, to avoid the snap pointpoints downstream
-            outZonalStatistics = ZonalStatistics(startperppolygon, arcpy.Describe(startperppolygon).OIDFieldName, facc, "MAXIMUM") #Find the maximum flowaccumulation point on the moriane feature
-            OutHighestFcc = Con(facc == outZonalStatistics,facc)  ##Determine the highest flowaccumuation part
-            #Snap_Pour Points ## the purpose is to create the same extent raster with only the highest fcc point
-            outSnapPour = SnapPourPoint(OutHighestFcc, facc, 0, "VALUE") ## Just create a pourpoint raster with the same extent of the input DEM
-            outpntWs = Watershed(fdir, outSnapPour, "VALUE")
+        ##select the ice polygon corresponding to the flowline glacier ID
+        ##Get the ice polygon with the considertation of the watershed
+        startperppolygon = Startpoint_perpendiculars(mainflowline, int(cellsize_float), 300) ##Just create a short distance perpendicular polygon (need polygon because sometimes line does not cross the highest Facc) from the start point to get the highest Facc point, to avoid the snap pointpoints downstream
+        outZonalStatistics = ZonalStatistics(startperppolygon, arcpy.Describe(startperppolygon).OIDFieldName, facc, "MAXIMUM") #Find the maximum flowaccumulation point on the moriane feature
+        OutHighestFcc = Con(facc == outZonalStatistics,facc)  ##Determine the highest flowaccumuation part
+        #Snap_Pour Points ## the purpose is to create the same extent raster with only the highest fcc point
+        outSnapPour = SnapPourPoint(OutHighestFcc, facc, 0, "VALUE") ## Just create a pourpoint raster with the same extent of the input DEM
+        outpntWs = Watershed(fdir, outSnapPour, "VALUE")
 
-            ##make sure to have the watershed and iceboundary intersection that can cover all flowline points
-            points_count = int(arcpy.GetCount_management(selflowline3dpoints).getOutput(0))
-            arcpy.RasterToPolygon_conversion(outpntWs, ws)
-            inside_point_count = 0
-            i = 1
-            while (points_count > inside_point_count): 
-                arcpy.Clip_analysis (selflowline3dpoints, ws, "in_memory\\selectedflpoints")
-                inside_point_count = int(arcpy.GetCount_management("in_memory\\selectedflpoints").getOutput(0))
-                if inside_point_count < points_count:
-                    #arcpy.AddMessage("The watershed corresponding to the flowline does not include all flowline points! The flowline does not follow the streamline!")
-                    outSnapPour = SnapPourPoint(singepoint, facc, 100*i) ##each time increase 100 m downstream
-                    outpntWs = Watershed(fdir, outSnapPour)
-                    arcpy.RasterToPolygon_conversion(outpntWs, ws)
-                ##add the maximum loop controls
-                if i >= 10:
-                    #arcpy.AddMessage("Cannot find the watershed that include all flowline points. Use the input ice boundary instead!")
-                    arcpy.CopyFeatures_management(icebndpolys, ws)
-                    break
+        ##make sure to have the watershed and iceboundary intersection that can cover all flowline points
+        points_count = int(arcpy.GetCount_management(selflowline3dpoints).getOutput(0))
+        arcpy.RasterToPolygon_conversion(outpntWs, ws)
+        inside_point_count = 0
+        i = 1
+        while (points_count > inside_point_count): 
+            arcpy.Clip_analysis (selflowline3dpoints, ws, "in_memory\\selectedflpoints")
+            inside_point_count = int(arcpy.GetCount_management("in_memory\\selectedflpoints").getOutput(0))
+            if inside_point_count < points_count:
+                #arcpy.AddMessage("The watershed corresponding to the flowline does not include all flowline points! The flowline does not follow the streamline!")
+                outSnapPour = SnapPourPoint(singepoint, facc, 100*i) ##each time increase 100 m downstream
+                outpntWs = Watershed(fdir, outSnapPour)
+                arcpy.RasterToPolygon_conversion(outpntWs, ws)
+            ##add the maximum loop controls
+            if i >= 10:
+                #arcpy.AddMessage("Cannot find the watershed that include all flowline points. Use the input ice boundary instead!")
+                arcpy.CopyFeatures_management(icebndpolys, ws)
+                break
+            i += 1
+
+        arcpy.Clip_analysis (ws, icebndpolys, icepolyselect)
+        #remove the potential spurious polygons
+        with arcpy.da.UpdateCursor(icepolyselect, "SHAPE@AREA") as cursor:
+            i = 0
+            for row in cursor:
                 i += 1
+                if row[0] < minArea:
+                    cursor.deleteRow()  
+        del cursor
+        #arcpy.AddMessage("the number of icepolyselect is:" + str(i))
+        if i> 0:
+            del row
+        '''
+        #cross_section_pnts = cross_section_points(selflowline3dpoints, flowline, icepolyselect, BedDEM, 1600, 60)
+        arcpy.PolygonToLine_management(icepolyselect, "in_memory\\selTargetFC")
+        cross_section_pnts = cross_section_points_with_TF(selflowline3dpoints, flowline, icepolyselect, BedDEM, "in_memory\\selTargetFC", cellsize_float, 10000, Distance)
 
-            arcpy.Clip_analysis (ws, icebndpolys, icepolyselect)
-            #remove the potential spurious polygons
-            with arcpy.da.UpdateCursor(icepolyselect, "SHAPE@AREA") as cursor:
-                i = 0
-                for row in cursor:
-                    i += 1
-                    if row[0] < minArea:
-                        cursor.deleteRow()  
-            del cursor
-            #arcpy.AddMessage("the number of icepolyselect is:" + str(i))
-            if i> 0:
-                del row
-            '''
-            #cross_section_pnts = cross_section_points(selflowline3dpoints, flowline, icepolyselect, BedDEM, 1600, 60)
-            arcpy.PolygonToLine_management(icepolyselect, "in_memory\\selTargetFC")
-            cross_section_pnts = cross_section_points_with_TF(selflowline3dpoints, flowline, icepolyselect, BedDEM, "in_memory\\selTargetFC", cellsize_float, 10000, Distance)
+        ##Ice thickness calculation along the flowlines
+        #Ice_Thickness_Calculation (selflowline3dpoints)
 
-            ##Ice thickness calculation along the flowlines
-            #Ice_Thickness_Calculation (selflowline3dpoints)
+        ##Get the shape factors first with the known ice polygon and target elevation for each flowline point
+        if bFactorPolyfit == True:
+            arcpy.AddMessage("Deriving F factor based on the Polyfit of the cross section...")
+            AdjustFfactor_Ployfit_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "TargetElev", icepolyselect)
+            ##replace the ffactor == 0.8 as the average F factor of the whole section
+            
+        else:
+            arcpy.AddMessage("Deriving F factor from cross section...")
+            #Try to use the curve fitting method to derive the F factor
+            AdjustFfactor_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "TargetElev", icepolyselect) 
+        
+        arcpy.AddMessage("Ice thickness calculation along the flowlines...")
+        Ice_Thickness_Calculation (selflowline3dpoints, min_ss, max_ss)
 
-            ##Get the shape factors first with the known ice polygon and target elevation for each flowline point
+        ##No need to do surface interpolation for individual outlines becasue this will be done at the end 03/14/2013
+        #arcpy.AddMessage("Interpolating ice thickness and surface rasters...")
+        #icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "ice", method, "in_memory\\icesurface")
+
+        ###2/16/2023: Do not need to figure out the best shear stress because the revise ice thickness calculation already did that
+        '''
+        ss0 = shearstress ##each glacier only have one shear stress for all flowlines and flow points
+
+        ##Add three lists to record ss, distance to target features, and outside_percentange of the target features
+        ss_list = []
+        distance_list = []
+        
+        ss_ratio0 = 0
+        bStop = False
+        bAdjustSS = False
+        Dist2Target = 10000
+        icepolyold = "in_memory\\icesurold"
+        selflowline3dpointsold = "in_memory\\selflowline3dpointsold"
+        icepolyold2 = "in_memory\\icesurold2"
+        selflowline3dpointsold2 = "in_memory\\selflowline3dpointsold2"
+        nloop = 0
+        while (bStop == False) and (nloop < 10):
+            #icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "thick", "in_memory\\icesurface")
+            #2/16/2023
+            icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "ice", method, "in_memory\\icesurface")
+
+            if bAdjustSS == False:
+                #ss = shear_stress_calculation (mainflowline, icepoly, icesurface)
+                ss = shear_stress_calculation(mainflowline, icepolyselect, icesurface, min_ss, max_ss)
+            else:
+                if abs(distance_list[-2] - distance_list[-1]) > 0: 
+                    m = (ss_list[-2] - ss_list[-1])/(distance_list[-2] - distance_list[-1])
+                    ss = ss_list[-1] - m * distance_list[-1]
+                else:
+                    ss = (ss_list[-2] - ss_list[-1]) / 2
+
+                if ss < min_ss: ##If the shear stress is negative, using the default value
+                    ss = min_ss
+                if ss > max_ss:
+                    ss = max_ss
+                
+            arcpy.AddMessage("The calculated shear stress is:" + str(ss) + " and the difference with the previous value is " + str(abs(ss-ss0)/ss0))
+            ss_ratio = abs(ss - ss0)/ss0
+            if abs(ss_ratio - ss_ratio0)< 0.005 or (ss_ratio < 0.01):  ##assuming ss always increase, to stop if decreasing; ##use 1.0% change as the threshold to stop the loop
+                break
+                
+            ##update ss value
+            arcpy.CalculateField_management(selflowline3dpoints,"SSTRESS",ss) ##update ss to the flowline points
+
             if bFactorPolyfit == True:
                 arcpy.AddMessage("Deriving F factor based on the Polyfit of the cross section...")
-                AdjustFfactor_Ployfit_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "TargetElev", icepolyselect)
+                AdjustFfactor_Ployfit_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepolyselect)
                 ##replace the ffactor == 0.8 as the average F factor of the whole section
                 
             else:
                 arcpy.AddMessage("Deriving F factor from cross section...")
                 #Try to use the curve fitting method to derive the F factor
-                AdjustFfactor_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "TargetElev", icepolyselect) 
-            
-            arcpy.AddMessage("Ice thickness calculation along the flowlines...")
-            Ice_Thickness_Calculation (selflowline3dpoints, min_ss, max_ss)
+                AdjustFfactor_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepolyselect) 
 
-            ##No need to do surface interpolation for individual outlines becasue this will be done at the end 03/14/2013
-            #arcpy.AddMessage("Interpolating ice thickness and surface rasters...")
-            #icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "ice", method, "in_memory\\icesurface")
+            ##Recalculate the ice thickness for the flowpoints based on adjusted F and ss parameters
+            Ice_Thickness_Calculation (selflowline3dpoints)
 
-            ###2/16/2023: Do not need to figure out the best shear stress because the revise ice thickness calculation already did that
-            '''
-            ss0 = shearstress ##each glacier only have one shear stress for all flowlines and flow points
-
-            ##Add three lists to record ss, distance to target features, and outside_percentange of the target features
-            ss_list = []
-            distance_list = []
-            
-            ss_ratio0 = 0
-            bStop = False
-            bAdjustSS = False
-            Dist2Target = 10000
-            icepolyold = "in_memory\\icesurold"
-            selflowline3dpointsold = "in_memory\\selflowline3dpointsold"
-            icepolyold2 = "in_memory\\icesurold2"
-            selflowline3dpointsold2 = "in_memory\\selflowline3dpointsold2"
-            nloop = 0
-            while (bStop == False) and (nloop < 10):
-                #icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "thick", "in_memory\\icesurface")
-                #2/16/2023
-                icesurface = IceSurfaceCalculation_with_crosssection_pnts_for_iceboundary (selflowline3dpoints, BedDEM, icepolyselect, "ice", method, "in_memory\\icesurface")
-
-                if bAdjustSS == False:
-                    #ss = shear_stress_calculation (mainflowline, icepoly, icesurface)
-                    ss = shear_stress_calculation(mainflowline, icepolyselect, icesurface, min_ss, max_ss)
-                else:
-                    if abs(distance_list[-2] - distance_list[-1]) > 0: 
-                        m = (ss_list[-2] - ss_list[-1])/(distance_list[-2] - distance_list[-1])
-                        ss = ss_list[-1] - m * distance_list[-1]
-                    else:
-                        ss = (ss_list[-2] - ss_list[-1]) / 2
-
-                    if ss < min_ss: ##If the shear stress is negative, using the default value
-                        ss = min_ss
-                    if ss > max_ss:
-                        ss = max_ss
-                    
-                arcpy.AddMessage("The calculated shear stress is:" + str(ss) + " and the difference with the previous value is " + str(abs(ss-ss0)/ss0))
-                ss_ratio = abs(ss - ss0)/ss0
-                if abs(ss_ratio - ss_ratio0)< 0.005 or (ss_ratio < 0.01):  ##assuming ss always increase, to stop if decreasing; ##use 1.0% change as the threshold to stop the loop
-                    break
-                    
-                ##update ss value
-                arcpy.CalculateField_management(selflowline3dpoints,"SSTRESS",ss) ##update ss to the flowline points
-
-                if bFactorPolyfit == True:
-                    arcpy.AddMessage("Deriving F factor based on the Polyfit of the cross section...")
-                    AdjustFfactor_Ployfit_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepolyselect)
-                    ##replace the ffactor == 0.8 as the average F factor of the whole section
-                    
-                else:
-                    arcpy.AddMessage("Deriving F factor from cross section...")
-                    #Try to use the curve fitting method to derive the F factor
-                    AdjustFfactor_with_cross_section_pnts (selflowline3dpoints, cross_section_pnts, "ice", icepolyselect) 
-
-                ##Recalculate the ice thickness for the flowpoints based on adjusted F and ss parameters
-                Ice_Thickness_Calculation (selflowline3dpoints)
-
-                ss0 = ss
-                ss_ratio0 = ss_ratio
-                nloop += 1
-            '''
-            
-            if gid == 0: #The first time
-                arcpy.CopyFeatures_management(selflowline3dpoints, outpoints)
-                ##arcpy.CopyFeatures_management(CS_ice_points, All_CS_ice_points)
-                #arcpy.CopyRaster_management(icesurface, icesurs)
-            else:
-                arcpy.Append_management(selflowline3dpoints, outpoints, "NO_TEST" )
-                ##arcpy.Append_management(CS_ice_points, All_CS_ice_points, "NO_TEST")
-                #arcpy.Mosaic_management(icesurface, icesurs, "MEAN","","", "", "", "", "")
-        except:
-            arcpy.AddMessage("THere is an error inthe ice thickness calcualtion. Move to the next one!")
-            pass
+            ss0 = ss
+            ss_ratio0 = ss_ratio
+            nloop += 1
+        '''
+        
+        if gid == 0: #The first time
+            arcpy.CopyFeatures_management(selflowline3dpoints, outpoints)
+            ##arcpy.CopyFeatures_management(CS_ice_points, All_CS_ice_points)
+            #arcpy.CopyRaster_management(icesurface, icesurs)
+        else:
+            arcpy.Append_management(selflowline3dpoints, outpoints, "NO_TEST" )
+            ##arcpy.Append_management(CS_ice_points, All_CS_ice_points, "NO_TEST")
+            #arcpy.Mosaic_management(icesurface, icesurs, "MEAN","","", "", "", "", "")
+        #except:
+        #    arcpy.AddMessage("THere is an error inthe ice thickness calcualtion. Move to the next one!")
+        #    pass
 
     ##Smooth the polgyons and extract the ice surface within the ice polygon
     arcpy.AddMessage("Generating final outputs...")
