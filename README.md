@@ -1,3 +1,12 @@
+# How to download and use this toolbox in ArcGIS or ArcGIS Pro
+The github site includes two ArcGIS toolbox (tbx) files (one is for ArcGIS 10.7 and 10.8, the other for ArcGIS Pro 2.8 or newer), a python folder, including all python source codes associated with these tools, and a testdata folder, including the test datasets for this toolbox from the Daxi Valley, eastern Tian Shan, China. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
+
+![image](https://user-images.githubusercontent.com/24683137/191109319-50965523-61dc-42cb-b977-7d463f9bcc27.png)
+
+A zip file of the whole github folder will be downloaded to the local computer. Unzip this file will create a PalaeoIce-main folder with the two tbx files, the python folder with all python code files, and the testdata folder with a geodatabase of test datasets. The reason to include two tbx files is because some tools created in ArcGIS cannot be fully transferred into ArcGIS Pro. The user can use the toolbox corresponding to ArcGIS or ArcGIS Pro, check the source codes, and continue improving this toolbox. Note that the source code file has not been imported to each tool in the current version, so that the toolbox cannot be run only with the tbx file. The test datasets in the file geodatabase include a SRTM DEM (UTM projection), a feature class of 23 extant glaciers, a feature class of 13 glacier outlines during the Little Ice Age, a feature class of a terminal moraine during MIS 2, a feature class of trimlines during MIS 2, and the measured ice thickness from Glacier #1 in this area in 2006.   
+
+The toolboxes and tools have been tested successfully in ArcGIS 10.7, 10.8 and ArcGIS Pro 2.8, 2.9 and 3.0. Errors may occur if using old versions of ArcGIS or ArcGIS Pro. 
+
 # ELA calculation tool is added in PalaeoIce 2.0 (1/3/2024)
 A new toolbox, ELA.tbx, is added to the PalaeoIce 2.0 folder. This toolbox is revised from the original ArcGIS toolbox of Pellitero et al. (2015) (Pellitero, R., Rea, B.R., Spagnolo, M., Bakke, J., Hughes, P., Ivy-Ochs, S., Lukas, S., Ribolini, A., 2015. A GIS tool for automatic calculation of glacier equilibrium-line altitudes. Comput. Geosci. 82, 55–62). The revised toolbox provides one tool interface to derive the four ELAs (AAR, MGE, AA, and AABR) for each glacier based on the ice surface topography and glacier outline. The user can also specify the contour interval and the AAR and AABR ratios for the calculation. The ELA values are saved in the attrbute table of the glacier outlines. The following is the interface of the ELA Calculation tool. 
 
@@ -117,14 +126,7 @@ The ‘Whole PalaeoIce Model Without PalaeoIce Outline(s)’ tool includes a set
 
 ![image](https://user-images.githubusercontent.com/24683137/191109055-3ff98418-1c79-4c42-8a43-0595e5cea96f.png)
 
-# How to download and use this toolbox in ArcGIS or ArcGIS Pro
-The github site includes two ArcGIS toolbox (tbx) files (one is for ArcGIS 10.7 and 10.8, the other for ArcGIS Pro 2.8 or newer), a python folder, including all python source codes associated with these tools, and a testdata folder, including the test datasets for this toolbox from the Daxi Valley, eastern Tian Shan, China. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
 
-![image](https://user-images.githubusercontent.com/24683137/191109319-50965523-61dc-42cb-b977-7d463f9bcc27.png)
-
-A zip file of the whole github folder will be downloaded to the local computer. Unzip this file will create a PalaeoIce-main folder with the two tbx files, the python folder with all python code files, and the testdata folder with a geodatabase of test datasets. The reason to include two tbx files is because some tools created in ArcGIS cannot be fully transferred into ArcGIS Pro. The user can use the toolbox corresponding to ArcGIS or ArcGIS Pro, check the source codes, and continue improving this toolbox. Note that the source code file has not been imported to each tool in the current version, so that the toolbox cannot be run only with the tbx file. The test datasets in the file geodatabase include a SRTM DEM (UTM projection), a feature class of 23 extant glaciers, a feature class of 13 glacier outlines during the Little Ice Age, a feature class of a terminal moraine during MIS 2, a feature class of trimlines during MIS 2, and the measured ice thickness from Glacier #1 in this area in 2006.   
-
-The toolboxes and tools have been tested successfully in ArcGIS 10.7, 10.8 and ArcGIS Pro 2.8, 2.9 and 3.0. Errors may occur if using old versions of ArcGIS or ArcGIS Pro. 
 
 # How to avoid some potential errors
 (1) The code file has not been imported to each tool (for continuous development purpose), so that the toolbox cannot be run only with the tbx file. The code file can be imported to each tool when no further improvement is needed in the future.  
