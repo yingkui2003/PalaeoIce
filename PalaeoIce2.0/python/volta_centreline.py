@@ -20,6 +20,185 @@
 #import SharedFunctions  
 from SharedFunctions import *  
 
+#------------------------------------------------------------------------------------------------------------
+# This function creates the flowlines based on the all center points derived from the perpendcular lines.
+# The code is revised from Volta centerline.
+# Revised for ArcGIS Pro 3.3 08032024
+#------------------------------------------------------------------------------------------------------------
+def flowline_bak (central_points_with_alt, dem, flow_line_output, flowline_glacier_outline, smooth_tolerance):
+    #inaccessible_lowpoint = 0
+    glacier_outline_line = arcpy.FeatureToLine_management(flowline_glacier_outline, "in_memory\\glacier_outline_line")
+    dissolve_outline_line = arcpy.Dissolve_management(glacier_outline_line, "in_memory\\dissolve_outline_line")
+    outline_line_geom = arcpy.CopyFeatures_management(dissolve_outline_line, arcpy.Geometry())
+
+    ##create a 0.5 cellsize buffer around the outline
+    cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
+    cellsize_float = float(cellsize.getOutput(0))
+    outline_buf = arcpy.Buffer_analysis(dissolve_outline_line, "in_memory\\outline_buf", (str(int(cellsize_float/2))+ " Meter"))
+    outline_buf_geom = arcpy.CopyFeatures_management(outline_buf, arcpy.Geometry())
+
+    
+    fields = ["RASTERVALU", "SHAPE@XY"] #list of fields used in central points: row[0] = elevation, row[1] = co-ords
+    central_point_dict = {} #create empty dictionary for all central points
+    flowline_points_dict = {}
+    
+    max_min_list = []
+    with arcpy.da.SearchCursor(central_points_with_alt, "RASTERVALU") as cursor:  ##Need to write a code to combine central points with alt with this part using cursor
+        for row in cursor:
+            max_min_list.append(row[0])  ##This just get the elevation values for these central points, should be able to combined with the previous function
+    max_central_point_remove = max(max_min_list)
+
+    with arcpy.da.UpdateCursor(central_points_with_alt, "RASTERVALU") as cursor:        ##DELETE MAX AND MIN POUNTS TO STOP CODE FAILING CLOSE TO MARGIN
+        for row in cursor:                                                              ###!!This is the problem that the flowline does not extend to the boundary
+            if row[0] == max_central_point_remove:
+                cursor.deleteRow()  ##Just remove the max elevation and keep the lowest elevation
+    
+    with arcpy.da.SearchCursor(central_points_with_alt, fields) as cursor:  ##I think this is wrong!! The first is Elevation value, the second is point location (x,y)
+        for row in cursor:
+            if row[0] != -9999:  #Excludes any 'no data' points
+                index = row[1] # use cood as index  ##I think the value should assigned reversely
+                value = row[0] # use Elevation as value
+                central_point_dict[row[1]] = row[0]  #populate dictionary
+
+    #maximum_central_point_alt = max(central_point_dict.itervalues()) #get max elevation value
+    maximum_central_point_alt = max(dict_itervalues(central_point_dict)) #get max elevation value
+    #min_central_point_alt = min(central_point_dict.itervalues()) #get min elevation value
+    min_central_point_alt = min(dict_itervalues(central_point_dict)) #get min elevation value
+    max_co_ords_list = [] #set up empty list for high point(s)
+    #for index, value in central_point_dict.iteritems():
+    for index, value in dict_iteritems(central_point_dict):
+        if value == maximum_central_point_alt:
+            max_co_ords_list.append(index)
+
+    min_co_ords_list = [] #set up empty list for low point(s)
+    #for index, value in central_point_dict.iteritems():
+    for index, value in dict_iteritems(central_point_dict):
+        if value == min_central_point_alt:
+            min_co_ords_list.append(index)
+
+    end_co_ords = min_co_ords_list[0] ##use the first lowest points as the end coordinate
+
+    if len(max_co_ords_list) > 1: #test if more than 1 high point
+        #arcpy.AddMessage("WARNING multiple high points, using first point")
+        pass
+
+    start_ele = maximum_central_point_alt #set initial starting elevation to maximum 
+    start_co_ords = max_co_ords_list[0] #set initial starting co-ords to that of maximum
+    flowline_points_dict = {} # Dictionary to hold initial flowline points in
+    line_segment_list = [] # list to hold all line segments in 
+    lowpoint_stop = 0 #boolean to continue or stop
+    while (lowpoint_stop == 0):
+        with arcpy.da.SearchCursor(central_points_with_alt, fields) as cursor:
+            nearest_neighbour_list = [] #create new empty list for each loop
+            for row in cursor:
+                if row[0] < start_ele and row[0] != -9999: #find all lower points (excluding nodata)
+                    nearest_neighbour_list.append(row[1]) #make list of x co ord and y co ord ###change to start_co_ords
+                    if start_co_ords not in nearest_neighbour_list:
+                        nearest_neighbour_list.append(start_co_ords) #add starting point to list  ##This is not necessary?? Already added in previous statement; likely pair the point with the highest point toghther???
+            len_nearest_neighbour_list = len(nearest_neighbour_list) #get length of list
+        if len_nearest_neighbour_list == 0:
+            lowpoint_stop = 1 #stop as no more lower nearest neighbours
+        else:
+            index_val = nearest_neighbour_list.index(start_co_ords)
+            ArrayOfPoints = np.array(nearest_neighbour_list) #convert list to numpy array
+            KDTreeOfPoints = KDTree(ArrayOfPoints)
+            closest_neighbour = 2 #closest neighbour = 2 as 1 = original)
+            return_neighbour = 1 #closets neighbour
+            distances, indicies = KDTreeOfPoints.query(ArrayOfPoints[index_val],closest_neighbour) #closest neighbour = 2 as 1 = original)
+            NearestNeighbor = (nearest_neighbour_list[indicies[return_neighbour]])
+            pointlist = []                  #create new list to hold start and end point for segment
+            pointlist.append([start_co_ords,NearestNeighbor]) #append start and end point
+            features = []
+            for feature in pointlist:
+                features.append(arcpy.Polyline(arcpy.Array([arcpy.Point(*coords) for coords in feature]),flowline_glacier_outline))
+            for segment in features:
+                intersect = segment.crosses(outline_line_geom[0])
+                if intersect == 0: ##if the section does not intersection the glacier outline
+                    line_segment_list.append(segment)
+                else:
+                    while intersect == 1: ##if the section intersect with the outline
+                        if NearestNeighbor != end_co_ords: ##This condition is checked to make sure the line does not cross the outline
+                            closest_neighbour = closest_neighbour + 1
+                            return_neighbour = return_neighbour + 1 ##Take the next nearest value
+                            distances, indicies = KDTreeOfPoints.query(ArrayOfPoints[index_val],closest_neighbour) #Check the next point
+                            NearestNeighbor = (nearest_neighbour_list[indicies[return_neighbour]])
+                            pointlist_intersect = []                  #create new list to hold start and end point for segment
+                            pointlist_intersect.append([start_co_ords,NearestNeighbor]) #append start and end point
+                            features_intersect = []
+                            for feature in pointlist_intersect:
+                                features_intersect.append(arcpy.Polyline(arcpy.Array([arcpy.Point(*coords) for coords in feature]),flowline_glacier_outline))
+                            for segment_intersect in features_intersect:
+                                intersect = segment_intersect.crosses(outline_line_geom[0])
+                                if intersect == 0:
+                                    line_segment_list.append(segment_intersect)
+                        else: ##This lowest point is OK
+                            intersect = 0   
+            start_co_ords = NearestNeighbor  #reset start co-ords to that of new nearest neighbour
+            start_ele = central_point_dict[NearestNeighbor] #reset start elevation to that of new nearest neighbour
+            closest_neighbour = 2 #closest neighbour = 2 as 1 = original)
+            return_neighbour = 1 #closest neighbour
+    
+    #arcpy.AddMessage(len(line_segment_list))
+    if len(line_segment_list) < 1:
+        #arcpy.AddMessage("No flowline is created")
+        return "in_memory\\flow_line"
+    segment_flowline = arcpy.CopyFeatures_management(line_segment_list, "in_memory\\segment_flowline")
+
+    ##test if the last line segment cross the glacier outline
+    last_line_segment = line_segment_list[-1]
+    dist_2_outline = last_line_segment.distanceTo(outline_line_geom[0])
+    #arcpy.AddMessage(dist_2_outline)
+    
+    #if last_line_segment.crosses(outline_buf_geom[0]) == 0: ##did not intersect the glacier outline buffer
+    if dist_2_outline > (cellsize_float/2): ##did not intersect the glacier outline buffer
+        #arcpy.AddMessage("The last line segment does not cross the glacier outline")
+        ##find the lowest points
+        ##create a 0.5 cellsize buffer around the outline
+        #cellsize = arcpy.GetRasterProperties_management(dem,"CELLSIZEX")
+        #cellsize_float = float(cellsize.getOutput(0))
+        #arcpy.Buffer_analysis(dissolve_outline_line, "in_memory\\tempbuf", (str(int(cellsize_float/2))+ " Meter"))
+        clipped_dem = ExtractByMask(dem,outline_buf)
+        ##get the lowest point
+        lowestEle = Con(clipped_dem == clipped_dem.minimum,1)  
+        arcpy.RasterToPoint_conversion(lowestEle, "in_memory\\lowestElePoint")
+
+        arr=arcpy.da.FeatureClassToNumPyArray("in_memory\\lowestElePoint", ("SHAPE@XY"))
+        lowest_pnt = np.array([item[0] for item in arr])
+
+
+        arcpy.CopyFeatures_management(last_line_segment, "in_memory\\last_line_segment")
+        arcpy.FeatureVerticesToPoints_management("in_memory\\last_line_segment", "in_memory\\last_line_points", "END")
+        #arcpy.Append_management("in_memory\\lowestElePoint", "in_memory\\last_line_points", "NO_TEST" )
+
+        arr=arcpy.da.FeatureClassToNumPyArray("in_memory\\last_line_points", ("SHAPE@XY"))
+        end_pnt = np.array([item[0] for item in arr])
+
+        #arcpy.AddField_management("in_memory\\last_line_points", 'SortID', 'Long', 6)
+        #arcpy.CalculateField_management("in_memory\\last_line_points","SortID",str("!"+str(arcpy.Describe("in_memory\\last_line_points").OIDFieldName)+"!"),"PYTHON_9.3")
+        dist = math.sqrt(math.pow((end_pnt[0][0]-lowest_pnt[0][0]),2)+math.pow((end_pnt[0][1]-lowest_pnt[0][1]),2))
+        #arcpy.AddMessage(dist)
+        if dist > cellsize_float:
+            last_line = arcpy.CreateFeatureclass_management("in_memory","last_line","POLYLINE","","","",glacier_outline_line)             #create new feature class (in memory) for new xy points
+            new_line_cursor = arcpy.da.InsertCursor(last_line, ["SHAPE@"])                                         #set up insert cursor to populate feature class
+            array = arcpy.Array([arcpy.Point(end_pnt[0][0],end_pnt[0][1]),arcpy.Point(lowest_pnt[0][0],lowest_pnt[0][1])])
+            polyline = arcpy.Polyline(array)
+            new_line_cursor.insertRow([polyline])
+            del new_line_cursor
+
+            #arcpy.PointsToLine_management("in_memory\\last_line_points", "in_memory\\last_line", "#", "SortID")
+
+            arcpy.Append_management("in_memory\\last_line", segment_flowline, "NO_TEST" )
+        
+    dissolved_flowline = arcpy.Dissolve_management(segment_flowline, flow_line_output)
+
+    ###Need to make sure that the flowline_output extended to the lowest points of the glacier outlines
+    #arcpy.FeatureVerticesToPoints_management(inFeatures, outFeatureClass, "MID")
+
+    
+    smooth_flowline = CA.SmoothLine(dissolved_flowline, "in_memory\\flow_line", "PAEK", smooth_tolerance)
+    
+    return smooth_flowline
+
 def new_branch_bak(input_flowline, dem, branch_outline, input_outline, cellsize_float, TributaryRatio, TributarySourceThreshold, glacier_outline):  
     #clipped_dem_raster = arcpy.sa.ExtractByMask(dem,input_outline)
     clipped_dem_raster = ExtractByMask(dem,input_outline)
