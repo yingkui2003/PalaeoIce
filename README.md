@@ -1,5 +1,5 @@
 # How to download and use this toolbox in ArcGIS or ArcGIS Pro
-The github site includes two ArcGIS toolbox (tbx) files (one is for ArcGIS 10.7 and 10.8, the other for ArcGIS Pro 2.8 or newer), a python folder, including all python source codes associated with these tools, and a testdata folder, including the test datasets for this toolbox from the Daxi Valley, eastern Tian Shan, China. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
+The github site includes an ArcGIS toolbox (tbx) file, a python folder, including all python source codes associated with these tools, and a testdata folder, including the test datasets for this toolbox from the Daxi Valley, eastern Tian Shan, China. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
 
 ![image](https://user-images.githubusercontent.com/24683137/191109319-50965523-61dc-42cb-b977-7d463f9bcc27.png)
 
