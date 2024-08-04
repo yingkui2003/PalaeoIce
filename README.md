@@ -1,4 +1,4 @@
-# How to download and use this toolbox in ArcGIS or ArcGIS Pro
+# How to download and use PalaeoIce in ArcGIS or ArcGIS Pro
 The github site includes an old PalaeoIce1.0 folder, an updated PalaeoIce2.0 folder, and a testdata folder, including the test datasets for this toolbox from the Daxi Valley, eastern Tian Shan, China. The PalaeoIce2.0 folder includes an ArcGIS toolbox (tbx) file and a python folder, including all python source codes associated with these tools. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
 
 ![image](https://user-images.githubusercontent.com/24683137/191109319-50965523-61dc-42cb-b977-7d463f9bcc27.png)
