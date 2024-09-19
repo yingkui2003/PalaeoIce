@@ -122,7 +122,8 @@ def ELA_AAR_MGE(EleArr, interval, ratio):
     # Create list of altitudes and populate primervalor
     Elelist = range(minalt, maxalt, interval)
 
-    H,X1 = np.histogram( EleArr, bins = Elelist, normed = True )
+    #H,X1 = np.histogram( EleArr, bins = Elelist, normed = True )
+    H,X1 = np.histogram( EleArr, bins = Elelist, density = True )
     dx = X1[1] - X1[0]
     Area3D_arr = np.cumsum(H)*dx
     
@@ -181,7 +182,8 @@ def ELA_AA_AABR(EleArr, interval, ratio):
     Elelist = range(minalt, maxalt, interval)
 
     
-    H,X1 = np.histogram( EleArr, bins = Elelist, normed = True )
+    #H,X1 = np.histogram( EleArr, bins = Elelist, normed = True )
+    H,X1 = np.histogram( EleArr, bins = Elelist, density = True )
     dx = X1[1] - X1[0]
     Area3D_arr = np.cumsum(H)*dx*100 ##times 100 to get the percentage
     #arcpy.AddMessage(Area3D_arr)
