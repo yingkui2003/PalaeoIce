@@ -8,8 +8,8 @@
 # Knoxville, TN 37996
 #-------------------------------------------------------------------------------
 
-#import SharedFunctions  
-from SharedFunctions import *  ## 
+#import SharedFunctions
+from SharedFunctions import * 
 #------------------------------------------------------------------------------------------------------------
 # This fuction regroups flowlines to individual GlacierID and dissolve the flowline sections from the top 
 # to the lowest points or the confluence points of another flowline. The flowline direction has to be from 
@@ -187,7 +187,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
     GlacierID = "GlacierID" ##Add a GlacierID for each moriane or cross section
 
     cellsize = arcpy.GetRasterProperties_management(InputDEM,"CELLSIZEX")
-    cellsize_int = int(cellsize.getOutput(0))
+    cellsize_int = int(float(cellsize.getOutput(0)))
     arcpy.env.snapRaster = InputDEM
 
     StreamThreshold = int(float(StreamThresholdKM2) * 1e6 / (cellsize_int * cellsize_int))
