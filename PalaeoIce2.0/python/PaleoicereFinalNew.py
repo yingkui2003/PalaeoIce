@@ -1159,7 +1159,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
 
     arcpy.AddMessage("Assigning Glacier ID...")
     Add_GlacierID_by_Touches (inputflowline, GlacierID, flowlines)
-    arcpy.CopyFeatures_management(flowlines, "d:\\tempLyk\\flowlines.shp") ##Can revise here to include glacier ID as a list?????
+    #arcpy.CopyFeatures_management(flowlines, "d:\\tempLyk\\flowlines.shp") ##Can revise here to include glacier ID as a list?????
 
 
     ###The process to ordering the flowlines
