@@ -190,12 +190,23 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
     cellsize_int = int(float(cellsize.getOutput(0)))
     arcpy.env.snapRaster = InputDEM
 
+
+
     StreamThreshold = int(float(StreamThresholdKM2) * 1e6 / (cellsize_int * cellsize_int))
     TributaryThreshold = int(float(TributaryThresholdKM2) * 1e6 / (cellsize_int * cellsize_int))
 
     ###Step 1: Stream network
     arcpy.AddMessage("Step 1: Stream extraction...")
- 
+
+    dem = Raster(InputDEM)
+    nrow = dem.height
+    ncol = dem.width
+
+    oldPPF = arcpy.env.parallelProcessingFactor
+    if (nrow > 1500 or ncol > 1500):
+        arcpy.AddMessage("The DEM has " +str(nrow) + " rows and " + str(ncol) + " columns")
+        arcpy.env.parallelProcessingFactor = 0 ##use 0 for large rasters
+    
     #Calculate Flowdirection
     fillDEM =Fill(InputDEM)  ##Fill the sink first
     fdir = FlowDirection(fillDEM,"NORMAL") ##Flow direction
@@ -261,7 +272,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
             
         OutHighestFcc = Con(facc == outZonalStatistics,facc)  ##Determine the highest flowaccumuation part
         
-        outSnapPour = SnapPourPoint(OutHighestFcc, facc, 0) ## Just create a pourpoint raster with the same extent of the input DEM
+        outSnapPour = SnapPourPoint(OutHighestFcc, facc, 0) + 1 ## Just create a pourpoint raster with the same extent of the input DEM
         
         #Calculate Watershed
         outWs = Watershed(fdir, outSnapPour)
@@ -501,7 +512,7 @@ def Flowline_from_Stream_Network (InputDEM, InputMoraineorCrossSection, StreamTh
     #arcpy.CopyFeatures_management(outflowline, "")
     Merge_and_Add_GlacierID_by_Topology (outflowline, "Max_Max", GlacierID, "MergeID", StreamLine)
     #arcpy.CopyFeatures_management(outflowline, StreamLine)
-
+    arcpy.env.parallelProcessingFactor = oldPPF
 ##Main program
 if __name__ == '__main__':
     # Script arguments
