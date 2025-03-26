@@ -8,7 +8,7 @@ A zip file of the whole github folder will be downloaded to the local computer. 
 The toolboxes and tools have been tested successfully in ArcGIS 10.7, 10.8 and ArcGIS Pro 2.8, 2.9 and 3.0. Errors may occur if using old versions of ArcGIS or ArcGIS Pro. 
 
 # Updated ELA calculation tool (3/26/2026)
-Updated the ELA calculation tool: 1) provide the output of the ELA lines for each glacier; 2) Implemented Numba Jit to speed up the ELA calcualtion, achieving about 4 times faster than the old tool.
+Updated the ELA calculation tool: 1) provide the output of the ELA lines for each glacier; 2) Implemented Numba Jit to speed up the ELA calculation, achieving about 4 times faster than the old tool.
 
 # ELA calculation tool is added in PalaeoIce 2.0 (1/3/2024)
 A new toolbox, ELA.tbx, is added to the PalaeoIce 2.0 folder. This toolbox is revised from the original ArcGIS toolbox of Pellitero et al. (2015) (Pellitero, R., Rea, B.R., Spagnolo, M., Bakke, J., Hughes, P., Ivy-Ochs, S., Lukas, S., Ribolini, A., 2015. A GIS tool for automatic calculation of glacier equilibrium-line altitudes. Comput. Geosci. 82, 55–62). The revised toolbox provides one tool interface to derive the four ELAs (AAR, MGE, AA, and AABR) for each glacier based on the ice surface topography and glacier outline. The user can also specify the contour interval and the AAR and AABR ratios for the calculation. The ELA values are saved in the attrbute table of the glacier outlines. The following is the interface of the ELA Calculation tool. 
