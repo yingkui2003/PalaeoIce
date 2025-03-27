@@ -1127,6 +1127,17 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
 
     arcpy.env.extent = BedDEM
     arcpy.env.cellSize = BedDEM
+
+    ## adjust the parallelProcessingFactor based on the DEM size 03/27/2025
+    dem = Raster(BedDEM)
+    nrow = dem.height
+    ncol = dem.width
+
+    oldPPF = arcpy.env.parallelProcessingFactor
+    if (nrow > 1500 or ncol > 1500):
+        arcpy.AddMessage("The DEM has " +str(nrow) + " rows and " + str(ncol) + " columns")
+        arcpy.env.parallelProcessingFactor = 0 ##use 0 for large rasters
+  
     #arcpy.env.snapRaster = BedDEM
     burninDEM = BedDEM - Power (cellsize_float / (cellsize_float + EucDistance(inputflowline) ), 2 ) * 10 ##Burn in the DEM to make sure the flow pass through the flowline start points
     ##Start to delineate the watershed
@@ -1625,6 +1636,9 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
     ##Delete temp datasets
     arcpy.Delete_management(icesurs) 
     arcpy.Delete_management(oldsurface) 
+
+    ##reset the parallelProcessingFactor
+    arcpy.env.parallelProcessingFactor = oldPPF
 
     return outpoints, outIcePolys, outIceSurfaces, outIceThickness
 
