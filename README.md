@@ -1,7 +1,8 @@
 # How to download and use PalaeoIce in ArcGIS or ArcGIS Pro
 The github site includes an old PalaeoIce1.0 folder, an updated PalaeoIce2.0 folder, and a testdata folder, including the test datasets for this toolbox from the Daxi Valley, eastern Tian Shan, China. The PalaeoIce2.0 folder includes an ArcGIS toolbox (tbx) file and a python folder, including all python source codes associated with these tools. The user can click "Code" (green color) on the right side of the github page and choose Download Zip.
 
-![image](https://user-images.githubusercontent.com/24683137/191109319-50965523-61dc-42cb-b977-7d463f9bcc27.png)
+![image](https://github.com/user-attachments/assets/636be04b-efc1-4e01-8f3b-ea347bd9bbf5)
+
 
 A zip file of the whole github folder will be downloaded to the local computer. Unzip this file will create a PalaeoIce-main folder with all folders and files. The reason to include two tbx files is because some tools created in ArcGIS cannot be fully transferred into ArcGIS Pro. The user can use the toolbox corresponding to ArcGIS or ArcGIS Pro, check the source codes, and continue improving this toolbox. Note that the source code file has not been imported to each tool in the current version, so that the toolbox cannot be run only with the tbx file. The test datasets in the file geodatabase include a SRTM DEM (UTM projection), a feature class of 23 extant glaciers, a feature class of 13 glacier outlines during the Little Ice Age, a feature class of a terminal moraine during MIS 2, a feature class of trimlines during MIS 2, and the measured ice thickness from Glacier #1 in this area in 2006.   
 
