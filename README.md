@@ -7,7 +7,7 @@ The github site includes an old PalaeoIce1.0 folder, an updated PalaeoIce2.0 fol
 A zip file of the whole github folder will be downloaded to the local computer. Unzip this file will create a PalaeoIce-main folder with all folders and files. The user can use the toolbox in ArcGIS (10.8 or newer) and ArcGIS Pro, check the source codes, and continue improving this toolbox. Note that the toolbox for ArcGIS 10.8 is converted from the toolbox in ArcGIS Pro. It may have some issues. Please email yli32@utk.edu if you have any issue. In addition, the source code file has not been imported to each tool in the current version, so that the toolbox cannot be run only with the tbx file. You need to download the whole folder! The test datasets in the file geodatabase include a SRTM DEM (UTM projection), a feature class of 23 extant glaciers, a feature class of 13 glacier outlines during the Little Ice Age, a feature class of a terminal moraine during MIS 2, a feature class of trimlines during MIS 2, and the measured ice thickness from Glacier #1 in this area in 2006.   
 
 # Updated ELA calculation tool (3/26/2026)
-Updated the ELA calculation tool: 1) provide the output of the ELA lines for each glacier; 2) Implemented Numba Jit to speed up the ELA calculation, achieving about 4 times faster than the old tool.
+Updated the ELA calculation tool: 1) provide the output of the ELA lines for each glacier; 2) Implemented Numba Jit to speed up the ELA calculation, achieving about 4 times faster than the old tool. However, the numba jit only works on ArcGIS Pro 3.4 with a Python version of 3.11.
 
 ![image](https://github.com/user-attachments/assets/03cbbc84-0070-49d0-b174-8aa628a13c63)
 
