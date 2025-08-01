@@ -30,8 +30,12 @@ from SharedFunctions import *  ##
 #------------------------------------------------------------------------------------
 def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsurface):
     ####Flow direction and accumulation analysis
-    #arcpy.env.cellSize = dem
-    #arcpy.env.snapRaster = dem
+    arcpy.env.cellSize = dem
+    arcpy.env.snapRaster = dem
+    
+    min_elev = dem.minimum
+    #arcpy.AddMessage(min_elev)
+
     boundarypoints = "in_memory\\boundarypoints"
     arcpy.PolygonToLine_management(boundary_polygon, "in_memory\\boundary_lines")
     arcpy.FeatureVerticesToPoints_management("in_memory\\boundary_lines", boundarypoints, 'ALL')
@@ -59,7 +63,21 @@ def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsu
     #arcpy.Append_management("in_memory\\inpoints_after_erase", boundarypoints3D, "NO_TEST")
     arcpy.Append_management("in_memory\\graded_points", boundarypoints3D, "NO_TEST")
 
-    #arcpy.CopyFeatures_management(boundarypoints3D, "c:\\test\\boundarypoints3D.shp")
+    ##Delete the value with the elevation of zero
+    with arcpy.da.UpdateCursor(boundarypoints3D, field) as cursor:
+        for row in cursor:
+            try:
+                if row[0] < min_elev:
+                    #arcpy.AddMessage("Delete one points!")
+                    cursor.deleteRow()
+            except:
+                #arcpy.AddMessage("Delete one points!")
+                cursor.deleteRow()
+
+    del row, cursor
+
+
+    arcpy.CopyFeatures_management(boundarypoints3D, "d:\\tempLyk\\boundarypoints3D.shp")
 
     surface3d = arcpy.env.scratchGDB + "\\surface3d"
     if method == "TopoToRaster":
@@ -84,6 +102,76 @@ def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsu
     
     return outsurface  
 
+'''
+#------------------------------------------------------------------------------------
+# This function do the surface interpretation based on a set of points and a interpretation method
+#------------------------------------------------------------------------------------
+def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsurface):
+    ####Flow direction and accumulation analysis
+    arcpy.env.cellSize = dem
+    arcpy.env.snapRaster = dem
+    
+    boundarypoints = temp_workspace + "\\boundarypoints"
+    boundary_lines = temp_workspace + "\\boundary_lines"
+    boundarypoints3D = temp_workspace + "\\boundarypoints3D"
+    boundarydbuf = temp_workspace + "\\boundarydbuf"
+    inpoints_after_erase = temp_workspace + "\\inpoints_after_erase"
+    pntraster = temp_workspace + "\\pntraster"
+    gridded_points = temp_workspace + "\\gridded_points"
+    
+    arcpy.PolygonToLine_management(boundary_polygon, boundary_lines)
+    arcpy.FeatureVerticesToPoints_management(boundary_lines, boundarypoints, 'ALL')
+    ExtractValuesToPoints(boundarypoints, dem, boundarypoints3D, "INTERPOLATE")
+    arcpy.AddField_management(boundarypoints3D, field, "FLOAT",10,6)
+    arcpy.CalculateField_management(boundarypoints3D, field, "!RASTERVALU!","PYTHON_9.3")
+    arcpy.DeleteField_management(boundarypoints3D, 'RASTERVALU')
+
+    ##Remove the inpoints close to the boundary line
+    arcpy.Buffer_analysis(boundary_lines, boundarydbuf, "90 Meter")
+    arcpy.Erase_analysis(inpoints, boundarydbuf, inpoints_after_erase)
+
+    ##Remove the identical points
+    arcpy.conversion.PointToRaster(inpoints_after_erase, field, pntraster, "MEAN", "NONE", 30)
+    arcpy.DeleteIdentical_management(inpoints_after_erase, "Shape", "30 Meter")
+    ExtractValuesToPoints(inpoints_after_erase, pntraster, gridded_points)
+    arcpy.CalculateField_management(gridded_points, field, "!RASTERVALU!","PYTHON_9.3")
+    arcpy.DeleteField_management(gridded_points, 'RASTERVALU')
+    
+    arcpy.Append_management(gridded_points, boundarypoints3D, "NO_TEST")
+
+
+    surface3d = arcpy.env.scratchGDB + "\\surface3d"
+    if method == "TopoToRaster":
+        pointElevations = TopoPointElevation([[boundarypoints3D,field]])
+        pointSurface = TopoToRaster([pointElevations])
+        arcpy.CopyRaster_management (pointSurface, surface3d)
+    elif method == "Kriging":
+        arcpy.Kriging_3d(boundarypoints3D, field, surface3d,"Circular", "#", "Variable 5")
+    elif method == "IDW":
+        arcpy.Idw_3d(boundarypoints3D, field, surface3d, "#",2)
+    elif method == "Spline":
+        arcpy.Spline_3d(boundarypoints3D, field, surface3d, "", "REGULARIZED")###, 0.1)
+    elif method == "Trend":
+        arcpy.Trend_3d(boundarypoints3D, field, surface3d, "#", 2, "LINEAR")
+    elif method == "NaturalNeighbor":
+        arcpy.NaturalNeighbor_3d(boundarypoints3D, field, surface3d, "#")
+
+    extSurface = ExtractByMask(surface3d, boundary_polygon)
+    arcpy.CopyRaster_management (extSurface, outsurface)
+
+    arcpy.Delete_management(surface3d)
+    arcpy.Delete_management(extSurface)
+ 
+    arcpy.Delete_management(boundarypoints)
+    arcpy.Delete_management(boundary_lines)
+    arcpy.Delete_management(boundarypoints3D)
+    arcpy.Delete_management(boundarydbuf)
+    arcpy.Delete_management(inpoints_after_erase)
+    arcpy.Delete_management(pntraster)
+    arcpy.Delete_management(gridded_points)
+    
+    return outsurface   
+'''
 #------------------------------------------------------------------------------------
 # This function do the surface interpretation based on a set of points and a interpretation method
 #------------------------------------------------------------------------------------
@@ -1574,9 +1662,13 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
     arcpy.AddMessage("Generating final outputs...")
 
     arcpy.Dissolve_management(allicepolys, 'in_memory\\disolveicepoly', '#', '#', 'SINGLE_PART', '#')
+    #tolerance = str(int(cellsize_float/2)) + " Meters"
+    #arcpy.Integrate_management('in_memory\\disolveicepoly', tolerance)
+
     arcpy.cartography.SmoothPolygon("in_memory\\disolveicepoly", outIcePolys, "PAEK", cellsize_float * 5)
 
-    
+    arcpy.management.RepairGeometry(outIcePolys,"DELETE_NULL", "ESRI")
+
     ###Output method 1: directly output mosaic ice surface
     ##Revise note: 02/08/2023 by Yingkui Li
     #Need to use the dissolve polygon to extract the DEM to get the boundary elevation points
@@ -1591,7 +1683,7 @@ def PaleoIceReconstruction(BedDEM, inputflowline, Distance, inwatershed, TargetF
         arcpy.DeleteField_management("in_memory\\outpoints_cp", 'RASTERVALU')
 
 
-    surface_interpolation ("in_memory\\outpoints_cp", "ice", BedDEM, outIcePolys, Interpolation_Method, outIceSurfaces)
+    surface_interpolation ("in_memory\\outpoints_cp", "ice", Raster(BedDEM), outIcePolys, Interpolation_Method, outIceSurfaces)
     '''
     outline_points = "in_memory\\outline_points"
     arcpy.PolygonToLine_management(outIcePolys, "in_memory\\icepoly_lines")
@@ -1665,27 +1757,17 @@ if __name__ == '__main__':
 
     arcpy.env.snapRaster = BedDEM
 
-    #arcpy.AddMessage(Interpolation_Method)
-    ##Get the minmum boxing area for the DEM
-    ##First to copy the inputflowline so that only selected was copied
-    #arcpy.CopyFeatures_management(inputflowline, "in_memory\\inputflowline_cp")
-    #mbg = arcpy.MinimumBoundingGeometry_management("in_memory\\inputflowline_cp", "in_memory\\mbg", "ENVELOPE", "ALL", "","NO_MBG_FIELDS")
-    mbg = arcpy.MinimumBoundingGeometry_management(inputflowline, "in_memory\\mbg", "ENVELOPE", "ALL", "","NO_MBG_FIELDS")
-    #create minimum bounding geometry, convex hull method"
     if inwatershed != "":
-        #arcpy.CopyFeatures_management(inwatershed, "in_memory\\inwatershed_cp")
-        #mbgWs = arcpy.MinimumBoundingGeometry_management("in_memory\\inwatershed_cp", "in_memory\\mbgWs", "ENVELOPE", "ALL", "","NO_MBG_FIELDS")
+        mbg = arcpy.MinimumBoundingGeometry_management(inputflowline, "in_memory\\mbg", "ENVELOPE", "ALL", "","NO_MBG_FIELDS")
         mbgWs = arcpy.MinimumBoundingGeometry_management(inwatershed, "in_memory\\mbgWs", "ENVELOPE", "ALL", "","NO_MBG_FIELDS")
         arcpy.Append_management(mbgWs, mbg, "NO_TEST")
-    ##create a 300 m buffer around the mbg
-    mbg_buf = arcpy.Buffer_analysis(mbg, "in_memory\\mbg_buf", "300 Meter", "", "", "ALL")
+        ##create a 300 m buffer around the mbg
+        mbg_buf = arcpy.Buffer_analysis(mbg, "in_memory\\mbg_buf", "300 Meter", "", "", "ALL")
     
-    #arcpy.CopyFeatures_management(mbg_buf, "c:\\test\\mbg_buf2.shp")
+        clipped_dem = ExtractByMask(BedDEM,mbg_buf)
+    else:
+        clipped_dem = Raster(BedDEM)
 
-    clipped_dem = ExtractByMask(BedDEM,mbg_buf)
-    #clipped_dem.save("c:\\test\\clipped_dem3.tif")
-
-    #arcpy.AddMessage("Use the clipped DEM")
     PaleoIceReconstruction(clipped_dem, inputflowline, Distance, inwatershed, TargetFeatures, shearstress, min_ss, max_ss, bFactorPolyfit, Interpolation_Method, outpoints, outIcePolys, outIceSurfaces, outIceThickness)
 
     arcpy.Delete_management("in_memory") ### Empty the in_memory
