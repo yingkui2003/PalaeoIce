@@ -76,9 +76,6 @@ def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsu
 
     del row, cursor
 
-
-    arcpy.CopyFeatures_management(boundarypoints3D, "d:\\tempLyk\\boundarypoints3D.shp")
-
     surface3d = arcpy.env.scratchGDB + "\\surface3d"
     if method == "TopoToRaster":
         pointElevations = TopoPointElevation([[boundarypoints3D,field]])
@@ -102,76 +99,7 @@ def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsu
     
     return outsurface  
 
-'''
-#------------------------------------------------------------------------------------
-# This function do the surface interpretation based on a set of points and a interpretation method
-#------------------------------------------------------------------------------------
-def surface_interpolation (inpoints, field, dem, boundary_polygon, method, outsurface):
-    ####Flow direction and accumulation analysis
-    arcpy.env.cellSize = dem
-    arcpy.env.snapRaster = dem
-    
-    boundarypoints = temp_workspace + "\\boundarypoints"
-    boundary_lines = temp_workspace + "\\boundary_lines"
-    boundarypoints3D = temp_workspace + "\\boundarypoints3D"
-    boundarydbuf = temp_workspace + "\\boundarydbuf"
-    inpoints_after_erase = temp_workspace + "\\inpoints_after_erase"
-    pntraster = temp_workspace + "\\pntraster"
-    gridded_points = temp_workspace + "\\gridded_points"
-    
-    arcpy.PolygonToLine_management(boundary_polygon, boundary_lines)
-    arcpy.FeatureVerticesToPoints_management(boundary_lines, boundarypoints, 'ALL')
-    ExtractValuesToPoints(boundarypoints, dem, boundarypoints3D, "INTERPOLATE")
-    arcpy.AddField_management(boundarypoints3D, field, "FLOAT",10,6)
-    arcpy.CalculateField_management(boundarypoints3D, field, "!RASTERVALU!","PYTHON_9.3")
-    arcpy.DeleteField_management(boundarypoints3D, 'RASTERVALU')
 
-    ##Remove the inpoints close to the boundary line
-    arcpy.Buffer_analysis(boundary_lines, boundarydbuf, "90 Meter")
-    arcpy.Erase_analysis(inpoints, boundarydbuf, inpoints_after_erase)
-
-    ##Remove the identical points
-    arcpy.conversion.PointToRaster(inpoints_after_erase, field, pntraster, "MEAN", "NONE", 30)
-    arcpy.DeleteIdentical_management(inpoints_after_erase, "Shape", "30 Meter")
-    ExtractValuesToPoints(inpoints_after_erase, pntraster, gridded_points)
-    arcpy.CalculateField_management(gridded_points, field, "!RASTERVALU!","PYTHON_9.3")
-    arcpy.DeleteField_management(gridded_points, 'RASTERVALU')
-    
-    arcpy.Append_management(gridded_points, boundarypoints3D, "NO_TEST")
-
-
-    surface3d = arcpy.env.scratchGDB + "\\surface3d"
-    if method == "TopoToRaster":
-        pointElevations = TopoPointElevation([[boundarypoints3D,field]])
-        pointSurface = TopoToRaster([pointElevations])
-        arcpy.CopyRaster_management (pointSurface, surface3d)
-    elif method == "Kriging":
-        arcpy.Kriging_3d(boundarypoints3D, field, surface3d,"Circular", "#", "Variable 5")
-    elif method == "IDW":
-        arcpy.Idw_3d(boundarypoints3D, field, surface3d, "#",2)
-    elif method == "Spline":
-        arcpy.Spline_3d(boundarypoints3D, field, surface3d, "", "REGULARIZED")###, 0.1)
-    elif method == "Trend":
-        arcpy.Trend_3d(boundarypoints3D, field, surface3d, "#", 2, "LINEAR")
-    elif method == "NaturalNeighbor":
-        arcpy.NaturalNeighbor_3d(boundarypoints3D, field, surface3d, "#")
-
-    extSurface = ExtractByMask(surface3d, boundary_polygon)
-    arcpy.CopyRaster_management (extSurface, outsurface)
-
-    arcpy.Delete_management(surface3d)
-    arcpy.Delete_management(extSurface)
- 
-    arcpy.Delete_management(boundarypoints)
-    arcpy.Delete_management(boundary_lines)
-    arcpy.Delete_management(boundarypoints3D)
-    arcpy.Delete_management(boundarydbuf)
-    arcpy.Delete_management(inpoints_after_erase)
-    arcpy.Delete_management(pntraster)
-    arcpy.Delete_management(gridded_points)
-    
-    return outsurface   
-'''
 #------------------------------------------------------------------------------------
 # This function do the surface interpretation based on a set of points and a interpretation method
 #------------------------------------------------------------------------------------
