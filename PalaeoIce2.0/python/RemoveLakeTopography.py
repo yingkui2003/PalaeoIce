@@ -75,15 +75,20 @@ def Polygon_To_Centerline(lake_outline, centerline):
     ###Save the two end points of this axis line
     axispoint = arcpy.FeatureVerticesToPoints_management(axis, "memory\\axispoint", "BOTH_ENDS") # Export the both end of the axis
 
+    outline_lines = "memory\\outline_lines" 
     outline_line = "memory\\outline_line" 
     split_lines = "memory\\split_lines"
     alloc_polygon = "memory\\alloc_polygon"
     alloc_lines =  "memory\\alloc_lines"
-    arcpy.PolygonToLine_management(lake_outline, outline_line)
+    arcpy.PolygonToLine_management(lake_outline, outline_lines)
+    ##Select the outline_line that is intersect with the axispoints for the processing
+    arcpy.SpatialJoin_analysis(outline_lines, axispoint, outline_line,
+                                "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "1 Meters", "#")
+     
     arcpy.management.SplitLineAtPoint(outline_line, axispoint, split_lines, "10 Meters")
 
     linearr  = arcpy.da.FeatureClassToNumPyArray(split_lines, ('SHAPE@LENGTH'))
-    arcpy.AddMessage(f"The number of splited lines: {len(linearr)}")
+    #arcpy.AddMessage(f"The number of splited lines: {len(linearr)}")
     if len(linearr) > 2:
         arcpy.FeatureVerticesToPoints_management(outline_line, "memory\\start_point", "START")
         arcpy.SpatialJoin_analysis(split_lines, "memory\\start_point", "memory\\split_lines_spatialjoin", "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "2 Meters", "#")
@@ -167,17 +172,18 @@ for lake_id in uniquelakeID:
     query = FcID + " = " + str(lake_id)
     arcpy.AddMessage("Processing Depth Interpretation for Lake #" + str(lake_id))                                                                                       
     arcpy.Select_analysis (in_lake_outlines, lake_outline, query)
-    
-    arcpy.Buffer_analysis(lake_outline, "memory\\lake_outline_buf", "100 Meter", "#", "#", "ALL")
-                
+
     arcpy.SpatialJoin_analysis(outline_lines, lake_outline, sel_outline_line,
                                     "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT")
+
 
     in_boundary = TopoBoundary ([lake_outline])
 
     ##consider lake contours
     if b_lake_contours:
-        arcpy.Clip_analysis (in_lake_contours, lake_outline, "memory\\clip_lake_contours")
+        #arcpy.Clip_analysis (in_lake_contours, lake_outline, "memory\\clip_lake_contours")
+        arcpy.SpatialJoin_analysis(in_lake_contours, lake_outline, "memory\\clip_lake_contours",
+                                        "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT")
         lineArray = arcpy.da.FeatureClassToNumPyArray("memory\\clip_lake_contours",contour_field)
         if len(lineArray)> 0:
             #fieldlist=[field.name for field in arcpy.ListFields("memory\\clip_lake_contours")]
@@ -190,10 +196,13 @@ for lake_id in uniquelakeID:
     in_contours = TopoContour([[sel_outline_line, 'contour']])
 
     ##consider lake elevation points
-    arcpy.Clip_analysis (in_lake_ele_points, lake_outline, "memory\\clip_lake_points")
+    #arcpy.Clip_analysis (in_lake_ele_points, lake_outline, "memory\\clip_lake_points")
+    arcpy.SpatialJoin_analysis(in_lake_ele_points, lake_outline, "memory\\clip_lake_points",
+                                    "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT")
+
     pntArray = arcpy.da.FeatureClassToNumPyArray("memory\\clip_lake_points",pnt_field)
     b_Process = True
-    
+    #arcpy.AddMessage(len(pntArray))
     if len(pntArray)== 0:
         exist_fields = [f.name for f in arcpy.ListFields(lake_outline)] #List of current field names in outline layer
         if pnt_field in exist_fields:
@@ -238,14 +247,14 @@ for lake_id in uniquelakeID:
 
         arcpy.FeatureVerticesToPoints_management("memory\\split_centerlines", "memory\\start_points", "START")
         arcpy.SpatialJoin_analysis("memory\\start_points", "memory\\centerline_points", "memory\\start_pnt_with_depth",
-                                    "JOIN_ONE_TO_ONE", "KEEP_ALL", '#', "INTERSECT", "1 Meters", "#")
+                                    "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "1 Meters", "#")
         StartArray = arcpy.da.FeatureClassToNumPyArray("memory\\start_pnt_with_depth", pnt_field)
         Starts = np.array([item[0] for item in StartArray])
         #arcpy.AddMessage(Starts)
         
         arcpy.FeatureVerticesToPoints_management("memory\\split_centerlines", "memory\\end_points", "END")
         arcpy.SpatialJoin_analysis("memory\\end_points", "memory\\centerline_points", "memory\\end_pnt_with_depth",
-                                    "JOIN_ONE_TO_ONE", "KEEP_ALL", '#', "INTERSECT", "1 Meters", "#")
+                                    "JOIN_ONE_TO_ONE", "KEEP_COMMON", '#', "INTERSECT", "1 Meters", "#")
         EndArray = arcpy.da.FeatureClassToNumPyArray("memory\\end_pnt_with_depth", pnt_field)
         Ends = np.array([item[0] for item in EndArray])
         #arcpy.AddMessage(Ends)

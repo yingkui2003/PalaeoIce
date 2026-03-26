@@ -21,7 +21,7 @@ from arcpy.sa import *
 arcpy.env.overwriteOutput = True
 arcpy.env.XYTolerance= "0.01 Meters"
 
-arcpy.Delete_management("in_memory") ### Empty the in_memory
+#arcpy.Delete_management("in_memory") ### Empty the in_memory
 ArcGISPro = 0
 arcpy.AddMessage("The current python version is: " + str(sys.version_info[0]))
 if sys.version_info[0] == 2:  ##For ArcGIS 10, need to check the 3D and Spatial Extensions
@@ -58,18 +58,17 @@ inDEM = arcpy.GetParameterAsText(0)
 min_area_km2 = arcpy.GetParameter(1)
 outLakes = arcpy.GetParameterAsText(2)
 
-arcpy.Delete_management("in_memory")
-
+#arcpy.Delete_management("memory")
 spatialref=arcpy.Describe(inDEM).spatialReference
 
 arcpy.env.extent = inDEM
 arcpy.env.snapRaster = inDEM
 arcpy.env.cellSize = inDEM
 
-OutSlope = Slope(inDEM)
-ConSlope = Con(OutSlope == 0, 1, 0)
-outFocalMax = FocalStatistics(ConSlope, "", "MAXIMUM")
-OutFlat = Con(outFocalMax > 0, 1)
+OutAsp = Aspect(inDEM)
+ConAsp = Con(OutAsp == -1, 1, 0)
+OutBndCln = BoundaryClean(ConAsp)
+OutFlat = Con(OutBndCln > 0, 1)
 arcpy.RasterToPolygon_conversion(OutFlat, outLakes)
 
 min_area = min_area_km2 * 1e6
@@ -80,4 +79,8 @@ with arcpy.da.UpdateCursor(outLakes, "SHAPE@AREA") as cursor:
             cursor.deleteRow()  ##Just remove the max elevation and keep the lowest elevation
 del cursor, row
 
-arcpy.Delete_management("in_memory")
+arcpy.Delete_management(OutAsp)
+arcpy.Delete_management(ConAsp)
+arcpy.Delete_management(OutBndCln)
+arcpy.Delete_management(OutFlat)
+#arcpy.Delete_management("memory")
