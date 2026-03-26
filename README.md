@@ -8,8 +8,9 @@ A zip file of the whole GitHub folder will be downloaded to the local computer. 
 
 Note that PaleoIce 2.0 removed the requirements of the UTM projection for the tools, so that the toolbox can be used for any projected coordinate systems with the same horizontal and vertical units (meters or feet).
 
-# Fixed the "Lake Extraction from DEM" and "Remove Lake Topography" Tools (3/26/2025)
+# Fixed the "Lake Extraction from DEM" and "Remove Lake Topography" Tools (3/26/2026)
 Fix the errors caused by the "Remove Lake Topography" Tool due to the license requirement of the "Ploygon To Centerline" tool in ArcGIS Pro. Replace this tool with a customized funnction to determine the lake centerline based on other GIS functions. Note that this lake centerline tool only derive one centerline from the long axis of the lake polygon. 
+Change the interface of the "Lake Extraction from DEM" tool. The minimum lake area is in km^2 and the default value is changed to 0.1 km^2. This value can be adjusted for different areas. Also refined the code to allow for better boundary cleanup. 
 
 # Updated ELA calculation tool (3/26/2025)
 Updated the ELA calculation tool: 1) provide the output of the ELA lines for each glacier; 2) Implemented Numba Jit to speed up the ELA calculation, achieving about 4 times faster than the old tool. However, the numba jit version (ELA_with_numba.tbx) only works on ArcGIS Pro 3.4 or higher with a Python version of 3.11. For the old version of ArcGIS Pro or ArcGIS 10.8 or newer, you can use the ELA_without_numba.tbx toolbox for the ELA calculation. To run the ELA_with_numba.tbx, you may need to install numba and other Python packages in ArcGIS Pro. Please check the instruction PDF file in the folder for details. 
